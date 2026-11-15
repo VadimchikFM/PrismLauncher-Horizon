@@ -1,0 +1,17 @@
+{
+  "_comment": "Translations of the strings this launcher adds for Horizon, which Prism Launcher's own catalogs don't have yet. Keys are the English source texts; a list holds a text's plural forms.",
+  "messages": {
+    "%n project(s)": [
+      "%n project",
+      "%n projects"
+    ],
+    ", %n mod(s)": [
+      ", %n mod",
+      ", %n mods"
+    ],
+    "Modpack %1 for Minecraft %2: %n mod(s)": [
+      "Modpack %1 for Minecraft %2: %n mod",
+      "Modpack %1 for Minecraft %2: %n mods"
+    ]
+  }
+}

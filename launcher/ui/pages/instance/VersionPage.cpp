@@ -55,6 +55,8 @@
 #include "VersionPage.h"
 #include "meta/JsonFormat.h"
 #include "tasks/SequentialTask.h"
+#include "minecraft/HorizonComponent.h"
+#include "minecraft/HorizonVersionList.h"
 #include "ui/dialogs/InstallLoaderDialog.h"
 #include "ui_VersionPage.h"
 
@@ -240,7 +242,8 @@ void VersionPage::updateButtons(int row)
     ui->actionRemove->setEnabled(patch && patch->isRemovable());
     ui->actionMove_down->setEnabled(patch && patch->isMoveable());
     ui->actionMove_up->setEnabled(patch && patch->isMoveable());
-    ui->actionChange_version->setEnabled(patch && patch->isVersionChangeable(false));
+    // Horizon's versions are its releases, not the launcher's metadata
+    ui->actionChange_version->setEnabled(patch && (patch->isVersionChangeable(false) || patch->getID() == HorizonComponent::Uid));
     ui->actionEdit->setEnabled(patch && patch->isCustom());
     ui->actionCustomize->setEnabled(patch && patch->isCustomizable());
     ui->actionRevert->setEnabled(patch && patch->isRevertible());
@@ -370,6 +373,10 @@ void VersionPage::on_actionChange_version_triggered()
         return;
     }
     auto patch = m_profile->getComponent(versionRow);
+    if (patch->getID() == HorizonComponent::Uid) {
+        changeHorizonVersion();
+        return;
+    }
     auto name = patch->getName();
     auto list = patch->getVersionList();
     list->clearExternalRecommends();
@@ -444,6 +451,19 @@ void VersionPage::on_actionDownload_All_triggered()
     // FIXME: unused return value
     tDialog.execWithTask(task.get());
     updateButtons();
+    m_container->refreshContainer();
+}
+
+void VersionPage::changeHorizonVersion()
+{
+    VersionSelectDialog dialog(HorizonVersionList::shared(), tr("Change Horizon version"), this);
+    dialog.setCurrentVersion(HorizonComponent::version(m_profile));
+    if (!dialog.exec() || !dialog.selectedVersion()) {
+        return;
+    }
+    if (!HorizonComponent::install(m_profile, dialog.selectedVersion()->descriptor())) {
+        QMessageBox::critical(this, tr("Error"), tr("Couldn't change Horizon's version."));
+    }
     m_container->refreshContainer();
 }
 

@@ -36,7 +36,10 @@
  * shader mod used to be able to change settings.
  */
 
+#include <QImage>
 #include <QMutex>
+#include <QPixmap>
+#include <QStringList>
 
 enum class ShaderPackFormat { VALID, INVALID };
 
@@ -44,6 +47,15 @@ class ShaderPack : public Resource {
     Q_OBJECT
    public:
     using Ptr = shared_qobject_ptr<Resource>;
+
+    /** What a shader pack says of itself: Horizon's packs do, in their manifest (`horizon-shaders.toml`), and so may the
+     *  platform it was downloaded from (ResourceRemoteInfo). */
+    struct Details {
+        QString name;
+        QString description;
+        QStringList authors;
+        QString license;
+    };
 
     ShaderPackFormat packFormat() const { return m_pack_format; }
 
@@ -55,8 +67,27 @@ class ShaderPack : public Resource {
 
     bool valid() const override;
 
+    QString name() const override;
+    QString description() const;
+    QStringList authors() const;
+    QString license() const;
+    Details details() const;
+    /** Thread-safe. */
+    void setDetails(const Details& details);
+
+    /** Thread-safe. `source` says where it is from: empty for the pack's own, else the file it was read from. */
+    void setImage(const QImage& image, const QString& source = {});
+    QString imageSource() const;
+    bool hasImage() const;
+    /** Gets the image, scaled to size. Only from the GUI thread. */
+    QPixmap image(QSize size, Qt::AspectRatioMode mode = Qt::AspectRatioMode::IgnoreAspectRatio) const;
+
    protected:
     mutable QMutex m_data_lock;
 
     ShaderPackFormat m_pack_format = ShaderPackFormat::INVALID;
+    Details m_details;
+    QImage m_image;
+    QString m_image_source;
+    mutable QPixmap m_pixmap;
 };

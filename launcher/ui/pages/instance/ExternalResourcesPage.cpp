@@ -91,6 +91,12 @@ ExternalResourcesPage::ExternalResourcesPage(BaseInstance* instance, ResourceFol
 
         updateFrame(current, previous);
     });
+    // What the platform a resource came from says of it can arrive after it was picked (ResourceRemoteInfo)
+    connect(m_model, &QAbstractItemModel::dataChanged, this, [this, selection_model] {
+        if (const auto current = selection_model->currentIndex(); current.isValid()) {
+            updateFrame(current, current);
+        }
+    });
 
     auto updateExtra = [this]() {
         if (updateExtraInfo)

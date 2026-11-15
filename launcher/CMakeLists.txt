@@ -268,6 +268,13 @@ set(MINECRAFT_SOURCES
     minecraft/launch/ModMinecraftJar.h
     minecraft/launch/ExtractNatives.cpp
     minecraft/launch/ExtractNatives.h
+    minecraft/launch/HorizonContext.h
+    minecraft/launch/HorizonInstall.cpp
+    minecraft/launch/HorizonInstall.h
+    minecraft/launch/HorizonLaunch.cpp
+    minecraft/launch/HorizonLaunch.h
+    minecraft/launch/HorizonPrepare.cpp
+    minecraft/launch/HorizonPrepare.h
     minecraft/launch/LauncherPartLaunch.cpp
     minecraft/launch/LauncherPartLaunch.h
     minecraft/launch/MinecraftTarget.cpp
@@ -311,6 +318,16 @@ set(MINECRAFT_SOURCES
     minecraft/Library.cpp
     minecraft/Library.h
     minecraft/MojangDownloadInfo.h
+    minecraft/HorizonBackend.cpp
+    minecraft/HorizonComponent.cpp
+    minecraft/HorizonComponent.h
+    minecraft/HorizonBackend.h
+    minecraft/HorizonMods.cpp
+    minecraft/HorizonMods.h
+    minecraft/HorizonPackCreationTask.cpp
+    minecraft/HorizonPackCreationTask.h
+    minecraft/HorizonVersionList.cpp
+    minecraft/HorizonVersionList.h
     minecraft/VanillaInstanceCreationTask.cpp
     minecraft/VanillaInstanceCreationTask.h
     minecraft/VersionFile.cpp
@@ -327,6 +344,8 @@ set(MINECRAFT_SOURCES
     minecraft/mod/Mod.cpp
     minecraft/mod/ModDetails.h
     minecraft/mod/ModFolderModel.h
+    minecraft/mod/HorizonModFolderModel.cpp
+    minecraft/mod/HorizonModFolderModel.h
     minecraft/mod/ModFolderModel.cpp
     minecraft/mod/Resource.h
     minecraft/mod/Resource.cpp
@@ -456,6 +475,8 @@ set(TRANSLATIONS_SOURCES
     translations/TranslationsModel.cpp
     translations/POTranslator.h
     translations/POTranslator.cpp
+    translations/BundledTranslator.h
+    translations/BundledTranslator.cpp
 )
 
 set(TOOLS_SOURCES
@@ -495,6 +516,8 @@ set(API_SOURCES
     modplatform/ResourceType.cpp
 
     modplatform/ResourceAPI.h
+    modplatform/ResourceRemoteInfo.h
+    modplatform/ResourceRemoteInfo.cpp
     modplatform/ResourceAPI.cpp
 
     modplatform/EnsureMetadataTask.h
@@ -505,6 +528,11 @@ set(API_SOURCES
     modplatform/flame/FlameAPI.h
     modplatform/flame/FlameAPI.cpp
     modplatform/modrinth/ModrinthAPI.h
+    modplatform/horizon/HorizonAPI.cpp
+    modplatform/horizon/HorizonAPI.h
+    modplatform/horizon/HorizonCheckUpdate.cpp
+    modplatform/horizon/HorizonCheckUpdate.h
+
     modplatform/modrinth/ModrinthAPI.cpp
     modplatform/helpers/HashUtils.h
     modplatform/helpers/HashUtils.cpp
@@ -1030,6 +1058,11 @@ SET(LAUNCHER_SOURCES
 
     ui/pages/modplatform/technic/TechnicModel.cpp
     ui/pages/modplatform/technic/TechnicModel.h
+    ui/pages/modplatform/horizon/HorizonPackPage.cpp
+    ui/pages/modplatform/horizon/HorizonResourcePages.cpp
+    ui/pages/modplatform/horizon/HorizonResourcePages.h
+    ui/pages/modplatform/horizon/HorizonPackPage.h
+
     ui/pages/modplatform/technic/TechnicPage.cpp
     ui/pages/modplatform/technic/TechnicPage.h
 
@@ -1093,6 +1126,8 @@ SET(LAUNCHER_SOURCES
     ui/dialogs/ChooseProviderDialog.cpp
     ui/dialogs/ResourceUpdateDialog.cpp
     ui/dialogs/ResourceUpdateDialog.h
+    ui/dialogs/HorizonBuildDialog.cpp
+    ui/dialogs/HorizonBuildDialog.h
     ui/dialogs/InstallLoaderDialog.cpp
     ui/dialogs/InstallLoaderDialog.h
     ui/dialogs/ChooseOfflineNameDialog.cpp
@@ -1157,6 +1192,8 @@ SET(LAUNCHER_SOURCES
     ui/widgets/AppearanceWidget.h
     ui/widgets/AppearanceWidget.cpp
     ui/widgets/MinecraftSettingsWidget.h
+    ui/widgets/HorizonRegistryBrowser.cpp
+    ui/widgets/HorizonRegistryBrowser.h
     ui/widgets/MinecraftSettingsWidget.cpp
     ui/widgets/JavaSettingsWidget.h
     ui/widgets/JavaSettingsWidget.cpp
@@ -1296,6 +1333,7 @@ qt_add_resources(LAUNCHER_RESOURCES
     resources/flat_white/flat_white.qrc
     resources/documents/documents.qrc
     resources/shaders/shaders.qrc
+    resources/horizon/horizon.qrc
     "${CMAKE_CURRENT_BINARY_DIR}/../${Launcher_Branding_LogoQRC}"
 )
 

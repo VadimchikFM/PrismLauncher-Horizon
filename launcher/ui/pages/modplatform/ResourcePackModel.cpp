@@ -4,6 +4,9 @@
 
 #include "ResourcePackModel.h"
 
+#include "minecraft/MinecraftInstance.h"
+#include "minecraft/mod/ResourcePackFolderModel.h"
+
 #include <QMessageBox>
 #include <utility>
 
@@ -56,6 +59,35 @@ void ResourcePackResourceModel::searchWithTerm(const QString& term, unsigned int
     m_current_sort_index = sort;
 
     refresh();
+}
+
+
+/// The installed resource of `pack`, by the metadata kept with it: what it was downloaded from.
+static Resource* installedResource(const BaseInstance& instance, ModPlatform::IndexedPack::Ptr pack)
+{
+    auto* minecraft = dynamic_cast<MinecraftInstance*>(const_cast<BaseInstance*>(&instance));
+    if (minecraft == nullptr || minecraft->resourcePackList() == nullptr) {
+        return nullptr;
+    }
+    for (auto* resource : minecraft->resourcePackList()->allResources()) {
+        if (auto meta = resource->metadata(); meta && meta->provider == pack->provider && meta->project_id == pack->addonId) {
+            return resource;
+        }
+    }
+    return nullptr;
+}
+
+bool ResourcePackResourceModel::isPackInstalled(ModPlatform::IndexedPack::Ptr pack) const
+{
+    return installedResource(m_base_instance, pack) != nullptr;
+}
+
+QVariant ResourcePackResourceModel::getInstalledPackVersion(ModPlatform::IndexedPack::Ptr pack) const
+{
+    if (auto* resource = installedResource(m_base_instance, pack)) {
+        return resource->metadata()->version();
+    }
+    return {};
 }
 
 }  // namespace ResourceDownload

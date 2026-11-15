@@ -38,7 +38,9 @@
 
 #include "ModFolderPage.h"
 #include "minecraft/mod/Resource.h"
+#include "minecraft/MinecraftInstance.h"
 #include "ui/dialogs/ExportToModListDialog.h"
+#include "ui/dialogs/HorizonBuildDialog.h"
 #include "ui/dialogs/InstallLoaderDialog.h"
 #include "ui_ExternalResourcesPage.h"
 
@@ -61,6 +63,7 @@
 #include "minecraft/PackProfile.h"
 #include "minecraft/VersionFilterData.h"
 #include "minecraft/mod/Mod.h"
+#include "minecraft/mod/HorizonModFolderModel.h"
 #include "minecraft/mod/ModFolderModel.h"
 
 #include "tasks/ConcurrentTask.h"
@@ -110,6 +113,32 @@ ModFolderPage::ModFolderPage(BaseInstance* inst, ModFolderModel* model, QWidget*
     ui->actionsToolbar->insertActionAfter(ui->actionViewHomepage, ui->actionExportMetadata);
 
     ui->actionsToolbar->insertActionAfter(ui->actionViewFolder, ui->actionViewConfigs);
+
+    // An instance launched with Horizon: its native mods are compiled into the game, which this builds
+    if (auto* minecraft = dynamic_cast<MinecraftInstance*>(m_instance); minecraft && minecraft->usesHorizon() && m_model == minecraft->loaderModList()) {
+        // Text only, as the toolbar's other actions
+        auto* build = new QAction(tr("Build Horizon"), this);
+        // What the build is, said where it is built
+        auto updateToolTip = [build, minecraft] {
+            build->setToolTip(ModFolderPage::tr("Build the game with the native mods that are on.") + QChar('\n') +
+                              HorizonBuildDialog::buildStatus(minecraft));
+        };
+        connect(build, &QAction::triggered, this, [this, minecraft, updateToolTip] {
+            if (minecraft->isRunning()) {
+                QMessageBox::warning(this, tr("Build Horizon"), tr("Close the game first: it is built anew."));
+                return;
+            }
+            HorizonBuildDialog::confirmAndBuild(minecraft, this);
+            // The Build column and the tooltip say what the game is built with now
+            if (auto* horizon = dynamic_cast<HorizonModFolderModel*>(m_model)) {
+                horizon->refreshBuildStates();
+            }
+            updateToolTip();
+        });
+        ui->actionsToolbar->insertActionAfter(ui->actionChangeVersion, build);
+        connect(m_model, &ResourceFolderModel::updateFinished, build, updateToolTip);
+        updateToolTip();
+    }
 }
 
 bool ModFolderPage::shouldDisplay() const

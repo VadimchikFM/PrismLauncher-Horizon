@@ -120,6 +120,13 @@ void EnsureMetadataTask::executeTask()
         case (ModPlatform::ResourceProvider::FLAME):
             version_task = flameVersionsTask();
             break;
+        case (ModPlatform::ResourceProvider::HORIZON):
+            // Horizon's registry is not searched by a file's hash: nothing is found there this way
+            for (auto resource = m_resources.constBegin(); resource != m_resources.constEnd(); resource++)
+                emitFail(resource.value(), resource.key(), RemoveFromList::No);
+            m_resources.clear();
+            emitSucceeded();
+            return;
     }
 
     auto invalidade_leftover = [this] {
@@ -139,6 +146,8 @@ void EnsureMetadataTask::executeTask()
                 break;
             case (ModPlatform::ResourceProvider::FLAME):
                 project_task = flameProjectsTask();
+                break;
+            case (ModPlatform::ResourceProvider::HORIZON):
                 break;
         }
 

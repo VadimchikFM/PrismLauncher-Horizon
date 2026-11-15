@@ -44,6 +44,11 @@ namespace Ui {
 class MinecraftSettingsWidget;
 }
 
+class QCheckBox;
+class QGroupBox;
+class QLabel;
+class QLineEdit;
+
 class MinecraftSettingsWidget : public QWidget {
    public:
     MinecraftSettingsWidget(MinecraftInstance* instance, QWidget* parent = nullptr);
@@ -54,6 +59,8 @@ class MinecraftSettingsWidget : public QWidget {
 
    private:
     void openGlobalSettings();
+    /// Adds the global settings of Horizon, the game rewritten in Rust: the build to play with.
+    void setupHorizonGroup();
     void updateAccountsMenu(SettingsObject& settings);
     bool isQuickPlaySupported();
    private slots:
@@ -68,4 +75,9 @@ class MinecraftSettingsWidget : public QWidget {
     Ui::MinecraftSettingsWidget* m_ui;
     JavaSettingsWidget* m_javaSettings = nullptr;
     bool m_quickPlaySingleplayer = false;
+
+    /// Only in the global settings: Horizon's
+    QGroupBox* m_horizonGroupBox = nullptr;
+    QLineEdit* m_horizonBuildPath = nullptr;
+    QCheckBox* m_horizonAutoUpdate = nullptr;
 };

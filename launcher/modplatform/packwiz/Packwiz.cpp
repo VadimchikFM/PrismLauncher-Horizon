@@ -192,6 +192,17 @@ void V1::updateModIndex(const QDir& index_dir, Mod& mod)
                 { "version", mod.version().toString().toStdString() },
             };
             break;
+        case (ModPlatform::ResourceProvider::HORIZON):
+            // A project of Horizon's registry and the version of it, both by name
+            if (mod.project_id.toString().isEmpty() || mod.file_id.toString().isEmpty()) {
+                qCritical() << QString("Did not write file %1 because missing information!").arg(normalized_fname);
+                return;
+            }
+            update = toml::table{
+                { "project-id", mod.project_id.toString().toStdString() },
+                { "version", mod.file_id.toString().toStdString() },
+            };
+            break;
     }
 
     toml::array loaders;
@@ -355,6 +366,10 @@ auto V1::getIndexForMod(const QDir& index_dir, QString slug) -> Mod
             mod.provider = Provider::MODRINTH;
             mod.mod_id() = stringEntry(*mod_provider_table, "mod-id");
             mod.version() = stringEntry(*mod_provider_table, "version");
+        } else if ((mod_provider_table = update_table[ModPlatform::ProviderCapabilities::name(Provider::HORIZON)].as_table())) {
+            mod.provider = Provider::HORIZON;
+            mod.project_id = stringEntry(*mod_provider_table, "project-id");
+            mod.file_id = stringEntry(*mod_provider_table, "version");
         } else {
             qCritical() << QString("No mod provider on mod metadata!");
             return {};

@@ -78,6 +78,8 @@ class CustomPage : public QWidget, public BasePage {
     void refresh();
     void loaderRefresh();
     void suggestCurrent();
+    /// The one Minecraft version Horizon plays, as its last build said.
+    QString horizonMinecraftVersion() const;
 
    private:
     bool initialized = false;

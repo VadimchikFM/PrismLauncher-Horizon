@@ -240,6 +240,19 @@
             </widget>
            </item>
            <item>
+            <widget class="QRadioButton" name="horizonFilter">
+             <property name="toolTip">
+              <string>Minecraft rewritten in Rust: the instance is launched with Horizon instead of Java.</string>
+             </property>
+             <property name="text">
+              <string>Horizon</string>
+             </property>
+             <attribute name="buttonGroup">
+              <string notr="true">loaderBtnGroup</string>
+             </attribute>
+            </widget>
+           </item>
+           <item>
             <spacer name="verticalSpacer_2">
              <property name="orientation">
               <enum>Qt::Vertical</enum>

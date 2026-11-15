@@ -55,6 +55,7 @@ class ShaderPackPage : public ExternalResourcesPage {
     bool shouldDisplay() const override { return true; }
 
    public slots:
+    void updateFrame(const QModelIndex& current, const QModelIndex& previous) override;
     void downloadShaderPack();
     void downloadDialogFinished(int result);
     void updateShaderPacks();

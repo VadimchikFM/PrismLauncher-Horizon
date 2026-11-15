@@ -20,6 +20,7 @@
 
 #include "modplatform/EnsureMetadataTask.h"
 #include "modplatform/flame/FlameCheckUpdate.h"
+#include "modplatform/horizon/HorizonCheckUpdate.h"
 #include "modplatform/modrinth/ModrinthCheckUpdate.h"
 
 #include <QClipboard>
@@ -100,6 +101,15 @@ void ResourceUpdateDialog::checkCandidates()
         checkTask.addTask(m_modrinthCheckTask);
     }
 
+    if (!m_horizonToUpdate.empty()) {
+        m_horizonCheckTask.reset(new HorizonCheckUpdate(m_horizonToUpdate, versions, m_loadersList, m_resourceModel));
+        connect(m_horizonCheckTask.get(), &CheckUpdateTask::checkFailed, this,
+                [this](Resource* resource, const QString& reason, const QUrl& recoverUrl) {
+                    m_failedCheckUpdate.append({ resource, reason, recoverUrl });
+                });
+        checkTask.addTask(m_horizonCheckTask);
+    }
+
     if (!m_flameToUpdate.empty()) {
         m_flameCheckTask.reset(new FlameCheckUpdate(m_flameToUpdate, versions, m_loadersList, m_resourceModel));
         connect(m_flameCheckTask.get(), &CheckUpdateTask::checkFailed, this,
@@ -144,6 +154,17 @@ void ResourceUpdateDialog::checkCandidates()
             m_tasks.insert(updatable.name, updatable.download);
         }
         selectedVers.append(m_modrinthCheckTask->getDependencies());
+    }
+
+    // Add found updates for Horizon
+    if (m_horizonCheckTask) {
+        auto horizonUpdates = m_horizonCheckTask->getUpdates();
+        for (auto& updatable : horizonUpdates) {
+            qDebug() << QString("Mod %1 has an update available!").arg(updatable.name);
+
+            appendResource(updatable);
+            m_tasks.insert(updatable.name, updatable.download);
+        }
     }
 
     // Add found updated for Flame
@@ -301,8 +322,15 @@ auto ResourceUpdateDialog::ensureMetadata() -> bool
             case ModPlatform::ResourceProvider::FLAME:
                 flameTmp.push_back(resource);
                 break;
+            case ModPlatform::ResourceProvider::HORIZON:
+                // Horizon's registry is not searched by hash: what has no metadata is skipped
+                break;
         }
     };
+
+    // An instance launched with Horizon has nothing on the other platforms to look for
+    const auto* minecraft = dynamic_cast<MinecraftInstance*>(m_instance);
+    const bool horizon = minecraft != nullptr && const_cast<MinecraftInstance*>(minecraft)->usesHorizon();
 
     // ask the user on what provider to seach for the mod first
     for (auto* candidate : m_candidates) {
@@ -315,7 +343,7 @@ auto ResourceUpdateDialog::ensureMetadata() -> bool
             continue;
         }
 
-        if (candidate->type() == ResourceType::FOLDER) {
+        if (candidate->type() == ResourceType::FOLDER || horizon) {
             continue;
         }
 
@@ -409,6 +437,9 @@ void ResourceUpdateDialog::onMetadataEnsured(Resource* resource)
         case ModPlatform::ResourceProvider::FLAME:
             m_flameToUpdate.push_back(resource);
             break;
+        case ModPlatform::ResourceProvider::HORIZON:
+            m_horizonToUpdate.push_back(resource);
+            break;
     }
 }
 
@@ -419,6 +450,8 @@ ModPlatform::ResourceProvider next(ModPlatform::ResourceProvider p)
             return ModPlatform::ResourceProvider::FLAME;
         case ModPlatform::ResourceProvider::FLAME:
             return ModPlatform::ResourceProvider::MODRINTH;
+        case ModPlatform::ResourceProvider::HORIZON:
+            break;
     }
 
     return ModPlatform::ResourceProvider::FLAME;
@@ -503,7 +536,7 @@ void ResourceUpdateDialog::appendResource(const CheckUpdateTask::Update& info, Q
 
     QString text = info.changelog;
     changelog->setData(0, Qt::UserRole, text);
-    if (info.provider == ModPlatform::ResourceProvider::MODRINTH) {
+    if (info.provider == ModPlatform::ResourceProvider::MODRINTH || info.provider == ModPlatform::ResourceProvider::HORIZON) {
         text = markdownToHTML(info.changelog.toUtf8());
     }
 

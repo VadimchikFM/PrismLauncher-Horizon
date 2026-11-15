@@ -106,6 +106,12 @@ class MinecraftInstance : public BaseInstance {
     /** Returns whether the instance, with its version, has support for demo mode. */
     bool supportsDemo() const;
 
+    /** Returns whether the instance is launched with Horizon, the game rewritten in Rust, instead of Java. */
+    bool usesHorizon();
+
+    /** Where an instance launched with Horizon keeps its mods: content and native ones, as its Mods page lists them. */
+    QString horizonModsRoot() const;
+
     void updateRuntimeContext() override;
 
     //////  Profile management //////
@@ -164,6 +170,8 @@ class MinecraftInstance : public BaseInstance {
    protected:  // data
     std::unique_ptr<PackProfile> m_components;
     std::unique_ptr<ModFolderModel> m_loader_mod_list;
+    // Its mods while it is launched with Horizon, kept beside the Java ones: pages that show one list keep it
+    std::unique_ptr<ModFolderModel> m_horizon_mod_list;
     std::unique_ptr<ModFolderModel> m_core_mod_list;
     std::unique_ptr<ModFolderModel> m_nil_mod_list;
     std::unique_ptr<ResourcePackFolderModel> m_resource_pack_list;

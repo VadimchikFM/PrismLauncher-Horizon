@@ -35,7 +35,7 @@ static const QMap<QString, IndexedVersionType> s_indexed_version_type_names = { 
                                                                                 { "alpha", IndexedVersionType::Alpha } };
 
 static const QList<ModLoaderType> loaderList = { NeoForge, Forge, Cauldron,     LiteLoader, Quilt, Fabric,
-                                                 Babric,   BTA,   LegacyFabric, Ornithe,    Rift };
+                                                 Babric,   BTA,   LegacyFabric, Ornithe,    Rift,  Horizon };
 
 QList<ModLoaderType> modLoaderTypesToList(ModLoaderTypes flags)
 {
@@ -65,6 +65,8 @@ const char* ProviderCapabilities::name(ResourceProvider p)
             return "modrinth";
         case ResourceProvider::FLAME:
             return "curseforge";
+        case ResourceProvider::HORIZON:
+            return "horizon";
     }
     return {};
 }
@@ -76,6 +78,8 @@ QString ProviderCapabilities::readableName(ResourceProvider p)
             return "Modrinth";
         case ResourceProvider::FLAME:
             return "CurseForge";
+        case ResourceProvider::HORIZON:
+            return "Horizon";
     }
     return {};
 }
@@ -88,14 +92,24 @@ QStringList ProviderCapabilities::hashType(ResourceProvider p)
         case ResourceProvider::FLAME:
             // Try newer formats first, fall back to old format
             return { "sha1", "md5", "murmur2" };
+        case ResourceProvider::HORIZON:
+            // Horizon's registry lists each file's SHA-256
+            return { "sha256" };
     }
     return {};
 }
 
 QString getMetaURL(ResourceProvider provider, QVariant projectID)
 {
-    return ((provider == ModPlatform::ResourceProvider::FLAME) ? "https://www.curseforge.com/projects/" : "https://modrinth.com/mod/") +
-           projectID.toString();
+    switch (provider) {
+        case ModPlatform::ResourceProvider::FLAME:
+            return "https://www.curseforge.com/projects/" + projectID.toString();
+        case ModPlatform::ResourceProvider::HORIZON:
+            return "https://playhorizon.dev/mods/" + projectID.toString();
+        case ModPlatform::ResourceProvider::MODRINTH:
+            break;
+    }
+    return "https://modrinth.com/mod/" + projectID.toString();
 }
 
 auto getModLoaderAsString(ModLoaderType type) -> const QString
@@ -125,6 +139,8 @@ auto getModLoaderAsString(ModLoaderType type) -> const QString
             return "ornithe";
         case Rift:
             return "rift";
+        case Horizon:
+            return "horizon";
         default:
             break;
     }
@@ -155,6 +171,8 @@ auto getModLoaderFromString(QString type) -> ModLoaderType
         return Ornithe;
     if (type == "rift")
         return Rift;
+    if (type == "horizon")
+        return Horizon;
     return {};
 }
 

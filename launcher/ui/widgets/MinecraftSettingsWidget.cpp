@@ -39,7 +39,14 @@
 #include "modplatform/ModIndex.h"
 #include "ui_MinecraftSettingsWidget.h"
 
+#include <QCheckBox>
 #include <QFileDialog>
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QVBoxLayout>
 #include "Application.h"
 #include "BuildConfig.h"
 #include "Json.h"
@@ -52,6 +59,7 @@ MinecraftSettingsWidget::MinecraftSettingsWidget(MinecraftInstance* instance, QW
     : QWidget(parent), m_instance(std::move(instance)), m_ui(new Ui::MinecraftSettingsWidget)
 {
     m_ui->setupUi(this);
+    setupHorizonGroup();
 
     if (m_instance == nullptr) {
         m_ui->settingsTabs->removeTab(1);
@@ -152,6 +160,51 @@ MinecraftSettingsWidget::~MinecraftSettingsWidget()
     delete m_ui;
 }
 
+void MinecraftSettingsWidget::setupHorizonGroup()
+{
+    // An instance plays Horizon by having it on its Version page, as a mod loader: only the global settings have more
+    if (m_instance != nullptr) {
+        return;
+    }
+
+    m_horizonGroupBox = new QGroupBox(tr("&Horizon (Minecraft rewritten in Rust)"), this);
+    auto* layout = new QVBoxLayout(m_horizonGroupBox);
+
+    auto* description = new QLabel(m_horizonGroupBox);
+    description->setWordWrap(true);
+    description->setOpenExternalLinks(true);
+    description->setText(tr("<a href=\"https://github.com/horizon-rust/horizon\">Horizon</a> is Minecraft: Java Edition rewritten in "
+                            "Rust. Instances that have it on their Version page (Install Loader > Horizon) are launched with it "
+                            "instead of Java, at the version picked there."));
+    layout->addWidget(description);
+
+    auto* pathRow = new QHBoxLayout();
+    pathRow->addWidget(new QLabel(tr("Build folder:"), m_horizonGroupBox));
+    m_horizonBuildPath = new QLineEdit(m_horizonGroupBox);
+    m_horizonBuildPath->setPlaceholderText(tr("Download the version each instance picks"));
+    m_horizonBuildPath->setClearButtonEnabled(true);
+    pathRow->addWidget(m_horizonBuildPath);
+    auto* browse = new QPushButton(tr("Browse"), m_horizonGroupBox);
+    pathRow->addWidget(browse);
+    layout->addLayout(pathRow);
+
+    m_horizonAutoUpdate = new QCheckBox(tr("Check for a newer nightly build before each launch"), m_horizonGroupBox);
+    layout->addWidget(m_horizonAutoUpdate);
+
+    connect(browse, &QPushButton::clicked, this, [this] {
+        const auto path = QFileDialog::getExistingDirectory(this, tr("Select Horizon Build Folder"), m_horizonBuildPath->text());
+        if (!path.isEmpty()) {
+            m_horizonBuildPath->setText(path);
+        }
+    });
+    // A folder the player chose is played as it is: there is nothing to update.
+    connect(m_horizonBuildPath, &QLineEdit::textChanged, this,
+            [this](const QString& text) { m_horizonAutoUpdate->setEnabled(text.trimmed().isEmpty()); });
+
+    // At the top of the General page.
+    m_ui->verticalLayout_5->insertWidget(0, m_horizonGroupBox);
+}
+
 void MinecraftSettingsWidget::loadSettings()
 {
     SettingsObject* settings;
@@ -160,6 +213,12 @@ void MinecraftSettingsWidget::loadSettings()
         settings = m_instance->settings();
     else
         settings = APPLICATION->settings();
+
+    // Horizon
+    if (m_instance == nullptr) {
+        m_horizonBuildPath->setText(settings->get("HorizonBuildPath").toString());
+        m_horizonAutoUpdate->setChecked(settings->get("HorizonAutoUpdate").toBool());
+    }
 
     // Game Window
     m_ui->windowSizeGroupBox->setChecked(m_instance == nullptr || settings->get("OverrideWindow").toBool() ||
@@ -314,6 +373,12 @@ void MinecraftSettingsWidget::saveSettings()
         settings = m_instance->settings();
     else
         settings = APPLICATION->settings();
+
+    // Horizon
+    if (m_instance == nullptr) {
+        settings->set("HorizonBuildPath", m_horizonBuildPath->text().trimmed());
+        settings->set("HorizonAutoUpdate", m_horizonAutoUpdate->isChecked());
+    }
 
     // Console
     bool console = m_instance == nullptr || m_ui->consoleSettingsBox->isChecked();

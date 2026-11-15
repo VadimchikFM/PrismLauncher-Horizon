@@ -40,6 +40,7 @@
 #include "minecraft/mod/DataPack.h"
 #include "minecraft/mod/Mod.h"
 #include "minecraft/mod/ResourcePack.h"
+#include "minecraft/mod/ShaderPack.h"
 #include "minecraft/mod/TexturePack.h"
 
 namespace Ui {
@@ -66,6 +67,7 @@ class InfoFrame : public QFrame {
     void updateWithResourcePack(ResourcePack& rp);
     void updateWithDataPack(DataPack& rp);
     void updateWithTexturePack(TexturePack& tp);
+    void updateWithShaderPack(ShaderPack& sp);
 
     static QString renderColorCodes(QString input);
 

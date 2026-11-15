@@ -132,7 +132,7 @@ class PackProfile : public QAbstractListModel {
 
     bool setComponentVersion(const QString& uid, const QString& version, bool important = false);
 
-    bool installEmpty(const QString& uid, const QString& name);
+    bool installEmpty(const QString& uid, const QString& name, const QString& version = QStringLiteral("1"));
 
     QString patchFilePathForUid(const QString& uid) const;
 

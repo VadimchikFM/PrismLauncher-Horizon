@@ -102,6 +102,8 @@ class ModFilterWidget : public QTabWidget {
 
    public slots:
     void setCategories(const QList<ModPlatform::Category>&);
+    /// For a platform whose resources run on one loader, on both sides (Horizon): those filters are hidden.
+    void hideLoaderAndSideFilters();
 
    private:
     ModFilterWidget(MinecraftInstance* instance, bool extendedSupport);

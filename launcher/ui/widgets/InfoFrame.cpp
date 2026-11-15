@@ -229,6 +229,25 @@ void InfoFrame::updateWithResourcePack(ResourcePack& resource_pack)
     setImage(resource_pack.image({ 64, 64 }));
 }
 
+void InfoFrame::updateWithShaderPack(ShaderPack& shader_pack)
+{
+    QString text = renderColorCodes(shader_pack.name());
+    if (const auto homepage = shader_pack.homepage(); !homepage.isEmpty()) {
+        text = "<a href=\"" + QUrl(homepage).toEncoded() + "\">" + text + "</a>";
+    }
+    if (const auto authors = shader_pack.authors(); !authors.isEmpty()) {
+        text += " " + tr("by %1").arg(authors.join(", ").toHtmlEscaped());
+    }
+    setName(text);
+    setDescription(shader_pack.description().toHtmlEscaped());
+    setImage(shader_pack.image({ 64, 64 }));
+    if (const auto license = shader_pack.license(); !license.isEmpty()) {
+        setLicense(tr("License: %1").arg(license.toHtmlEscaped()));
+    } else {
+        setLicense();
+    }
+}
+
 void InfoFrame::updateWithDataPack(DataPack& data_pack)
 {
     setName(renderColorCodes(data_pack.name()));

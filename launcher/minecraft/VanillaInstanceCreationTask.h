@@ -12,7 +12,18 @@ class VanillaCreationTask final : public InstanceCreationTask {
 
     std::unique_ptr<MinecraftInstance> createInstance() override;
 
+    /// Makes the instance one that is launched with Horizon, the game rewritten in Rust, instead of Java.
+    /// @param version the Horizon it plays: a release's tag, or nothing for the newest Nightly.
+    void setUseHorizon(bool useHorizon, QString version = {})
+    {
+        m_use_horizon = useHorizon;
+        m_horizon_version = std::move(version);
+    }
+
    private:
+    bool m_use_horizon = false;
+    QString m_horizon_version;
+
     // Version to update to / create of the instance.
     BaseVersion::Ptr m_version;
 

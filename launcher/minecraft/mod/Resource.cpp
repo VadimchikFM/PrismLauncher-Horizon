@@ -62,6 +62,14 @@ void Resource::parseFile()
         } else if (file_name.endsWith(".nilmod")) {
             m_type = ResourceType::ZIPFILE;
             file_name.chop(7);
+        } else if (file_name.endsWith(".hmod") || file_name.endsWith(".hshader")) {
+            // Horizon's content mods and shader packs: zip files
+            m_type = ResourceType::ZIPFILE;
+            file_name.chop(file_name.endsWith(".hmod") ? 5 : 8);
+        } else if (file_name.endsWith(".hnmod")) {
+            // Horizon's native mods: zip files
+            m_type = ResourceType::ZIPFILE;
+            file_name.chop(6);
         } else if (file_name.endsWith(".litemod")) {
             m_type = ResourceType::LITEMOD;
             file_name.chop(8);

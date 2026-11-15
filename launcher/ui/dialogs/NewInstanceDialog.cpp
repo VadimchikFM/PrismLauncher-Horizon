@@ -64,6 +64,7 @@
 #include "ui/pages/modplatform/ftb/FtbPage.h"
 #include "ui/pages/modplatform/legacy_ftb/Page.h"
 #include "ui/pages/modplatform/modrinth/ModrinthPage.h"
+#include "ui/pages/modplatform/horizon/HorizonPackPage.h"
 #include "ui/pages/modplatform/technic/TechnicPage.h"
 #include "ui/widgets/PageContainer.h"
 
@@ -175,6 +176,8 @@ QList<BasePage*> NewInstanceDialog::getPages()
 
     pages.append(new CustomPage(this));
     pages.append(importPage);
+    // The modpacks of Horizon's registry: each becomes an instance launched with Horizon
+    pages.append(new HorizonPackPage(this));
     pages.append(new AtlPage(this));
     if (APPLICATION->capabilities() & Application::SupportsFlame)
         pages.append(new FlamePage(this));

@@ -8,11 +8,15 @@ class ShaderPackFolderModel : public ResourceFolderModel {
     Q_OBJECT
 
    public:
-    explicit ShaderPackFolderModel(const QDir& dir, BaseInstance* instance, bool is_indexed, bool create_dir, QObject* parent = nullptr)
-        : ResourceFolderModel(dir, instance, is_indexed, create_dir, parent)
-    {}
+    enum Columns { ActiveColumn = 0, ImageColumn, NameColumn, DateColumn, ProviderColumn, SizeColumn, NUM_COLUMNS };
+
+    explicit ShaderPackFolderModel(const QDir& dir, BaseInstance* instance, bool is_indexed, bool create_dir, QObject* parent = nullptr);
 
     virtual QString id() const override { return "shaderpacks"; }
+
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+    int columnCount(const QModelIndex& parent) const override;
 
     [[nodiscard]] Resource* createResource(const QFileInfo& info) override { return new ShaderPack(info); }
 

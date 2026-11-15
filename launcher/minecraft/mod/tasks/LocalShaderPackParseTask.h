@@ -39,6 +39,9 @@ bool processFolder(ShaderPack& pack, ProcessingLevel level = ProcessingLevel::Fu
 
 /** Checks whether a file is valid as a shader pack or not. */
 bool validate(QFileInfo file);
+
+/** What a Horizon shader pack's manifest, `horizon-shaders.toml`, says of the pack. */
+ShaderPack::Details readHorizonManifest(const QByteArray& contents);
 }  // namespace ShaderPackUtils
 
 class LocalShaderPackParseTask : public Task {

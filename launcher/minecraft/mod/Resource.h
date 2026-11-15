@@ -163,6 +163,12 @@ class Resource : public QObject {
         m_is_resolving = resolving;
         m_resolution_ticket = resolutionTicket;
     }
+    /** The parse is over and what it read is in. (A mod says so itself, as it takes its details.) */
+    void finishResolving()
+    {
+        m_is_resolving = false;
+        m_is_resolved = true;
+    }
 
     // Delete all files of this resource.
     auto destroy(const QDir& index_dir, bool preserve_metadata = false, bool attempt_trash = true) -> bool;

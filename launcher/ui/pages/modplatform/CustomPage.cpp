@@ -43,6 +43,7 @@
 #include "Version.h"
 #include "meta/Index.h"
 #include "meta/VersionList.h"
+#include "minecraft/HorizonVersionList.h"
 #include "minecraft/VanillaInstanceCreationTask.h"
 #include "ui/dialogs/NewInstanceDialog.h"
 
@@ -64,6 +65,7 @@ CustomPage::CustomPage(NewInstanceDialog* dialog, QWidget* parent) : QWidget(par
     connect(ui->fabricFilter, &QRadioButton::toggled, this, &CustomPage::loaderFilterChanged);
     connect(ui->quiltFilter, &QRadioButton::toggled, this, &CustomPage::loaderFilterChanged);
     connect(ui->liteLoaderFilter, &QRadioButton::toggled, this, &CustomPage::loaderFilterChanged);
+    connect(ui->horizonFilter, &QRadioButton::toggled, this, &CustomPage::loaderFilterChanged);
     connect(ui->loaderRefreshBtn, &QPushButton::clicked, this, &CustomPage::loaderRefresh);
 }
 
@@ -122,6 +124,26 @@ void CustomPage::loaderFilterChanged()
         ui->loaderVersionList->setExactFilter(BaseVersionList::ParentVersionRole, "AAA");  // empty list
         ui->loaderVersionList->setEmptyString(tr("No mod loader is selected."));
         ui->loaderVersionList->setEmptyMode(VersionListView::String);
+        // The list was empty before and is empty now, so nothing else says that the choice changed
+        suggestCurrent();
+        return;
+    } else if (ui->horizonFilter->isChecked()) {
+        // Horizon is the game itself, rewritten in Rust, for one Minecraft version. Its versions are its releases on
+        // GitHub, and the first of the list is "the newest", which the launcher keeps up to date.
+        const QString horizonVersion = horizonMinecraftVersion();
+        m_selectedLoader = "horizon";
+        if (minecraftVersion != horizonVersion) {
+            ui->loaderVersionList->setExactFilter(BaseVersionList::ParentVersionRole, "AAA");  // empty list
+            ui->loaderVersionList->setEmptyString(tr("Horizon plays Minecraft %1 only.\nSelect that version above.").arg(horizonVersion));
+            ui->loaderVersionList->setEmptyMode(VersionListView::String);
+            suggestCurrent();
+            return;
+        }
+        ui->loaderVersionList->setExactFilter(BaseVersionList::ParentVersionRole, "");
+        ui->loaderVersionList->initialize(HorizonVersionList::shared());
+        ui->loaderVersionList->selectRecommended();
+        ui->loaderVersionList->setEmptyString(tr("Horizon's versions could not be listed.\nThe instance will play the newest one."));
+        suggestCurrent();
         return;
     } else if (ui->neoForgeFilter->isChecked()) {
         ui->loaderVersionList->setExactFilter(BaseVersionList::ParentVersionRole, minecraftVersion);
@@ -157,6 +179,11 @@ void CustomPage::loaderFilterChanged()
 CustomPage::~CustomPage()
 {
     delete ui;
+}
+
+QString CustomPage::horizonMinecraftVersion() const
+{
+    return APPLICATION->settings()->get("HorizonMinecraftVersion").toString();
 }
 
 bool CustomPage::shouldDisplay() const
@@ -195,14 +222,22 @@ void CustomPage::suggestCurrent()
         return;
     }
 
+    if (ui->horizonFilter->isChecked() && m_selectedVersion->descriptor() == horizonMinecraftVersion()) {
+        // The same instance as without a loader, launched with Horizon
+        auto task = new VanillaCreationTask(m_selectedVersion);
+        // The version picked in the list, as a loader's is; none (the list did not load): the newest
+        const auto horizon = ui->loaderVersionList->selectedVersion();
+        task->setUseHorizon(true, horizon ? horizon->descriptor() : QString());
+        dialog->setSuggestedPack(QString("Horizon %1").arg(m_selectedVersion->descriptor()), task);
+    }
     // There isn't a selected version if the version list is empty
-    if (ui->loaderVersionList->selectedVersion() == nullptr)
+    else if (ui->loaderVersionList->selectedVersion() == nullptr)
         dialog->setSuggestedPack(m_selectedVersion->descriptor(), new VanillaCreationTask(m_selectedVersion));
     else {
         dialog->setSuggestedPack(m_selectedVersion->descriptor(),
                                  new VanillaCreationTask(m_selectedVersion, m_selectedLoader, m_selectedLoaderVersion));
     }
-    dialog->setSuggestedIcon("default");
+    dialog->setSuggestedIcon(ui->horizonFilter->isChecked() ? "horizon" : "default");
 }
 
 void CustomPage::setSelectedVersion(BaseVersion::Ptr version)

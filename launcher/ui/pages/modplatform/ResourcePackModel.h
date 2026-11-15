@@ -31,7 +31,11 @@ class ResourcePackResourceModel : public ResourceModel {
     ResourceAPI::VersionSearchArgs createVersionsArguments(const QModelIndex&) override;
     ResourceAPI::ProjectInfoArgs createInfoArguments(const QModelIndex&) override;
 
+    QVariant getInstalledPackVersion(ModPlatform::IndexedPack::Ptr) const override;
+
    protected:
+    bool isPackInstalled(ModPlatform::IndexedPack::Ptr) const override;
+
     const BaseInstance& m_base_instance;
 
    private:

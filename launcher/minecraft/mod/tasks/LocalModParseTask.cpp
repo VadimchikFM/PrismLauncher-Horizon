@@ -558,6 +558,59 @@ ModDetails ReadNilModInfo(QByteArray contents, QString fname)
     return details;
 }
 
+// Horizon's content mods (https://github.com/horizon-rust/horizon, docs/mods.md): horizon-mod.toml
+ModDetails ReadHorizonModInfo(QByteArray contents)
+{
+    ModDetails details;
+
+    toml::table table;
+#if TOML_EXCEPTIONS
+    try {
+        table = toml::parse(contents.toStdString());
+    } catch ([[maybe_unused]] const toml::parse_error& err) {
+        return {};
+    }
+#else
+    toml::parse_result result = toml::parse(contents.toStdString());
+    if (!result) {
+        return {};
+    }
+    table = result.table();
+#endif
+
+    auto text = [&table](const char* key) {
+        const auto value = table[key].value<std::string>();
+        return value ? QString::fromStdString(*value) : QString();
+    };
+    details.mod_id = text("id");
+    details.name = text("name");
+    details.version = text("version");
+    details.description = text("description");
+    if (auto* authors = table["authors"].as_array()) {
+        for (auto&& author : *authors) {
+            if (auto name = author.value<std::string>()) {
+                details.authors.append(QString::fromStdString(*name));
+            }
+        }
+    }
+    if (details.name.isEmpty()) {
+        details.name = details.mod_id;
+    }
+    return details;
+}
+
+// Horizon's native mods (docs/api/mod-files.md): horizon-native.json
+ModDetails ReadHorizonNativeInfo(QByteArray contents)
+{
+    ModDetails details;
+    const auto object = QJsonDocument::fromJson(contents).object();
+    // It has no name of its own: the mod list shows the one of its metadata, or the registry's
+    details.mod_id = object.value("id").toString();
+    details.version = object.value("version").toString();
+    details.mcversion = object.value("game").toString();
+    return details;
+}
+
 bool process(Mod& mod, ProcessingLevel level)
 {
     switch (mod.type()) {
@@ -640,6 +693,21 @@ bool processZIP(Mod& mod, [[maybe_unused]] ProcessingLevel level)
                 stop = true;
                 return true;
             }
+            // A Horizon mod: a content mod's manifest names it; one with only native code has the other
+            if (filePath == "horizon-mod.toml") {
+                details = ReadHorizonModInfo(file->readAll());
+                isValid = true;
+                stop = true;
+                return true;
+            }
+            if (filePath == "horizon-native.json") {
+                auto native = ReadHorizonNativeInfo(file->readAll());
+                if (!isValid) {
+                    details = native;
+                }
+                isValid = true;
+                return true;
+            }
             if (filePath == "forgeversion.properties") {
                 details = ReadForgeInfo(file->readAll());
                 isValid = true;
@@ -680,6 +748,19 @@ bool processZIP(Mod& mod, [[maybe_unused]] ProcessingLevel level)
 bool processFolder(Mod& mod, [[maybe_unused]] ProcessingLevel level)
 {
     ModDetails details;
+
+    // An unpacked Horizon content mod
+    QFileInfo horizon_info(FS::PathCombine(mod.fileinfo().filePath(), "horizon-mod.toml"));
+    if (horizon_info.isFile()) {
+        QFile horizon(horizon_info.filePath());
+        if (!horizon.open(QIODevice::ReadOnly))
+            return false;
+        details = ReadHorizonModInfo(horizon.readAll());
+        if (details.mod_id.isEmpty())
+            return false;
+        mod.setDetails(details);
+        return true;
+    }
 
     QFileInfo mcmod_info(FS::PathCombine(mod.fileinfo().filePath(), "mcmod.info"));
     if (mcmod_info.exists() && mcmod_info.isFile()) {
@@ -744,6 +825,18 @@ bool loadIconFile(const Mod& mod, QPixmap* pixmap)
         qWarning() << "Mod at" << mod.fileinfo().filePath() << "does not have a valid icon:" << reason;
         return false;
     };
+
+    // An icon kept beside the mod rather than in it: the one its platform has (ResourceRemoteInfo)
+    if (const QFileInfo kept(mod.iconPath()); kept.isAbsolute() && kept.isFile()) {
+        QFile icon(kept.filePath());
+        if (!icon.open(QIODevice::ReadOnly)) {
+            return png_invalid("failed to open file " + kept.filePath() + " " + icon.errorString());
+        }
+        if (!ModUtils::processIconPNG(mod, icon.readAll(), pixmap)) {
+            return png_invalid("invalid image");
+        }
+        return true;
+    }
 
     switch (mod.type()) {
         case ResourceType::FOLDER: {

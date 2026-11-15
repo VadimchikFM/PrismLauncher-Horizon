@@ -43,7 +43,9 @@ enum class ModLoaderType : std::uint16_t {
     BTA = 1U << 8U,
     LegacyFabric = 1U << 9U,
     Ornithe = 1U << 10U,
-    Rift = 1U << 11U
+    Rift = 1U << 11U,
+    // Horizon (https://github.com/horizon-rust/horizon): Minecraft rewritten in Rust, with mods of its own
+    Horizon = 1U << 12U
 };
 
 ModLoaderType operator|(ModLoaderType lhs, ModLoaderType rhs);
@@ -53,7 +55,7 @@ using enum ModLoaderType;
 Q_DECLARE_FLAGS(ModLoaderTypes, ModLoaderType)
 QList<ModLoaderType> modLoaderTypesToList(ModLoaderTypes flags);
 
-enum class ResourceProvider : std::uint8_t { MODRINTH, FLAME };
+enum class ResourceProvider : std::uint8_t { MODRINTH, FLAME, HORIZON };
 
 enum class DependencyType : std::uint8_t { REQUIRED, OPTIONAL, INCOMPATIBLE, EMBEDDED, TOOL, INCLUDE, UNKNOWN };
 

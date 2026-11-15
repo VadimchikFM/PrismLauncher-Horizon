@@ -27,6 +27,7 @@
 #include "Application.h"
 #include "ResourceDownloadTask.h"
 
+#include "minecraft/MinecraftInstance.h"
 #include "minecraft/PackProfile.h"
 #include "minecraft/mod/ModFolderModel.h"
 #include "minecraft/mod/ResourcePackFolderModel.h"
@@ -42,6 +43,7 @@
 #include "ui/pages/modplatform/ResourcePage.h"
 
 #include "ui/pages/modplatform/flame/FlameResourcePages.h"
+#include "ui/pages/modplatform/horizon/HorizonResourcePages.h"
 #include "ui/pages/modplatform/modrinth/ModrinthResourcePages.h"
 
 #include "modplatform/flame/FlameAPI.h"
@@ -307,6 +309,13 @@ QList<BasePage*> ModDownloadDialog::getPages()
 
     auto loaders = static_cast<MinecraftInstance*>(m_instance)->getPackProfile()->getSupportedModLoaders().value_or(ModPlatform::ModLoaderTypes(0));
 
+    // An instance launched with Horizon runs Horizon's own mods, from its registry
+    if (loaders & ModPlatform::Horizon) {
+        auto* page = HorizonModPage::create(this, *m_instance);
+        page->setSuppressInitialSearch(m_suppressInitialSearch);
+        pages.append(page);
+    }
+
     if (ModrinthAPI::validateModLoaders(loaders)) {
         auto* page = ModrinthModPage::create(this, *m_instance);
         page->setSuppressInitialSearch(m_suppressInitialSearch);
@@ -323,6 +332,10 @@ QList<BasePage*> ModDownloadDialog::getPages()
 
 GetModDependenciesTask::Ptr ModDownloadDialog::getModDependenciesTask()
 {
+    // Horizon's mods name no dependencies on the platforms the task asks
+    if (static_cast<MinecraftInstance*>(m_instance)->usesHorizon()) {
+        return nullptr;
+    }
     if (!APPLICATION->settings()->get("ModDependenciesDisabled").toBool()) {  // dependencies
         if (auto* model = dynamic_cast<ModFolderModel*>(getBaseModel()); model) {
             QList<std::shared_ptr<GetModDependenciesTask::PackDependency>> selectedVers;
@@ -355,6 +368,13 @@ ResourcePackDownloadDialog::ResourcePackDownloadDialog(QWidget* parent,
 QList<BasePage*> ResourcePackDownloadDialog::getPages()
 {
     QList<BasePage*> pages;
+
+    // Horizon plays vanilla's resource packs, and its registry lists some made for it
+    if (static_cast<MinecraftInstance*>(m_instance)->usesHorizon()) {
+        auto* horizonPage = HorizonResourcePackPage::create(this, *m_instance);
+        horizonPage->setSuppressInitialSearch(m_suppressInitialSearch);
+        pages.append(horizonPage);
+    }
 
     auto* modrinthPage = ModrinthResourcePackPage::create(this, *m_instance);
     modrinthPage->setSuppressInitialSearch(m_suppressInitialSearch);
@@ -419,6 +439,13 @@ ShaderPackDownloadDialog::ShaderPackDownloadDialog(QWidget* parent,
 QList<BasePage*> ShaderPackDownloadDialog::getPages()
 {
     QList<BasePage*> pages;
+
+    // Horizon draws its own shader packs as well as the Iris/OptiFine format's
+    if (static_cast<MinecraftInstance*>(m_instance)->usesHorizon()) {
+        auto* horizonPage = HorizonShaderPackPage::create(this, *m_instance);
+        horizonPage->setSuppressInitialSearch(m_suppressInitialSearch);
+        pages.append(horizonPage);
+    }
     auto* modrinthPage = ModrinthShaderPackPage::create(this, *m_instance);
     modrinthPage->setSuppressInitialSearch(m_suppressInitialSearch);
     pages.append(modrinthPage);
@@ -438,6 +465,9 @@ void ResourceDownloadDialog::setResourceMetadata(const std::shared_ptr<Metadata:
             break;
         case ModPlatform::ResourceProvider::FLAME:
             selectPage(Flame::id());
+            break;
+        case ModPlatform::ResourceProvider::HORIZON:
+            selectPage(Horizon::id());
             break;
     }
 

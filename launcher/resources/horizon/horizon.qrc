@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/horizon/translations">
+        <file>horizon_en.json</file>
+        <file>horizon_ru.json</file>
+    </qresource>
+</RCC>

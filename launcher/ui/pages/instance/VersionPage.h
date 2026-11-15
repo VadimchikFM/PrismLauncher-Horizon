@@ -93,6 +93,8 @@ class VersionPage : public QMainWindow, public BasePage {
     ComponentPtr current();
     int currentRow();
     void updateButtons(int row = -1);
+    /// Picks another of Horizon's releases for the instance to play
+    void changeHorizonVersion();
     void preselect(int row = 0);
     int doUpdate();
 

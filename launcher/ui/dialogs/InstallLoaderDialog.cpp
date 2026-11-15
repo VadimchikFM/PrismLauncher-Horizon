@@ -25,10 +25,16 @@
 #include "BuildConfig.h"
 #include "DesktopServices.h"
 #include "meta/Index.h"
+#include "minecraft/HorizonComponent.h"
+#include "minecraft/HorizonVersionList.h"
 #include "minecraft/MinecraftInstance.h"
 #include "minecraft/PackProfile.h"
+#include "settings/SettingsObject.h"
 #include "ui/widgets/PageContainer.h"
 #include "ui/widgets/VersionSelectWidget.h"
+
+/// Horizon's page: the game rewritten in Rust, picked like a loader, though it is no component of the profile.
+static const QString& HorizonPageId = HorizonComponent::Uid;
 
 class InstallLoaderPage : public VersionSelectWidget, public BasePage {
     Q_OBJECT
@@ -55,6 +61,13 @@ class InstallLoaderPage : public VersionSelectWidget, public BasePage {
     {
         if (loaded)
             return;
+
+        if (uid == HorizonPageId) {
+            // Its versions are its releases on GitHub
+            initialize(HorizonVersionList::shared());
+            loaded = true;
+            return;
+        }
 
         const auto versions = APPLICATION->metadataIndex()->get(uid);
         if (!versions)
@@ -134,7 +147,7 @@ InstallLoaderDialog::InstallLoaderDialog(PackProfile* profile, const QString& ui
 
 QList<BasePage*> InstallLoaderDialog::getPages()
 {
-    return { // NeoForge
+    QList<BasePage*> pages{ // NeoForge
              new InstallLoaderPage("net.neoforged", "neoforged", tr("NeoForge"), {}, profile),
              // Forge
              new InstallLoaderPage("net.minecraftforge", "forge", tr("Forge"), {}, profile),
@@ -145,6 +158,9 @@ QList<BasePage*> InstallLoaderDialog::getPages()
              // LiteLoader
              new InstallLoaderPage("com.mumfrey.liteloader", "liteloader", tr("LiteLoader"), {}, profile)
     };
+    // Horizon: the game itself, rewritten in Rust, with mods of its own. Its versions are its releases
+    pages.append(new InstallLoaderPage(HorizonPageId, "horizon", tr("Horizon"), {}, profile));
+    return pages;
 }
 
 QString InstallLoaderDialog::dialogTitle()
@@ -161,7 +177,10 @@ void InstallLoaderDialog::done(int result)
 {
     if (result == Accepted) {
         auto* page = pageCast(container->selectedPage());
-        if (page->selectedVersion()) {
+        if (page->selectedVersion() && page->id() == HorizonPageId) {
+            // The instance is launched with Horizon from now on, at this version
+            HorizonComponent::install(profile, page->selectedVersion()->descriptor());
+        } else if (page->selectedVersion()) {
             profile->setComponentVersion(page->id(), page->selectedVersion()->descriptor());
             if (auto component = profile->getComponent(page->id())) {
                 component->setEnabled(true);

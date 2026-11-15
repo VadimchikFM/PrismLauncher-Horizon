@@ -46,6 +46,7 @@
 #include "net/ChecksumValidator.h"
 #include "net/NetJob.h"
 
+#include "BundledTranslator.h"
 #include "POTranslator.h"
 
 #include "Application.h"
@@ -163,6 +164,7 @@ struct TranslationsModel::Private {
     QString m_selectedLanguage = g_defaultLangCode;
     std::unique_ptr<QTranslator> m_qtTranslator;
     std::unique_ptr<QTranslator> m_appTranslator;
+    std::unique_ptr<QTranslator> m_bundledTranslator;
 
     Net::Download* m_indexTask = nullptr;
     QString m_downloadingTranslation;
@@ -469,6 +471,10 @@ bool TranslationsModel::selectLanguage(QString key) const
         QCoreApplication::removeTranslator(d->m_qtTranslator.get());
         d->m_qtTranslator.reset();
     }
+    if (d->m_bundledTranslator) {
+        QCoreApplication::removeTranslator(d->m_bundledTranslator.get());
+        d->m_bundledTranslator.reset();
+    }
 
     /*
      * FIXME: potential source of crashes:
@@ -477,6 +483,13 @@ bool TranslationsModel::selectLanguage(QString key) const
      */
     const bool useSystemLocale = APPLICATION->settings()->get("UseSystemLocale").toBool();
     QLocale::setDefault(useSystemLocale ? QLocale::system() : QLocale(langCode));
+
+    // The strings the downloaded catalogs don't have yet. Installed first, so that a catalog's own translation wins;
+    // for English too, whose plural forms differ from the source.
+    d->m_bundledTranslator = std::make_unique<BundledTranslator>(langCode);
+    if (d->m_bundledTranslator->isEmpty() || !QCoreApplication::installTranslator(d->m_bundledTranslator.get())) {
+        d->m_bundledTranslator.reset();
+    }
 
     // if it's the default UI language, finish
     if (langCode == g_defaultLangCode) {

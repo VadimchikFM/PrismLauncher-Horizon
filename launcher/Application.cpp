@@ -876,6 +876,13 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
         m_settings->registerSetting("CloseAfterLaunch", false);
         m_settings->registerSetting("QuitAfterGameStop", false);
 
+        // Horizon, the game rewritten in Rust: the folder of a build to play with (empty: the launcher downloads the
+        // newest nightly itself), and whether a downloaded build is checked for a newer one before each launch
+        m_settings->registerSetting("HorizonBuildPath", "");
+        m_settings->registerSetting("HorizonAutoUpdate", true);
+        // The one Minecraft version Horizon plays: what the last build that was started said
+        m_settings->registerSetting("HorizonMinecraftVersion", "26.3");
+
         m_settings->registerSetting("Env", "{}");
 
         // Custom Microsoft Authentication Client ID
@@ -992,6 +999,7 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
         m_metacache->addBase("libraries", QDir("libraries").absolutePath());
         m_metacache->addBase("fmllibs", QDir("mods/minecraftforge/libs").absolutePath());
         m_metacache->addBase("general", QDir("cache").absolutePath());
+        m_metacache->addBase("HorizonPacks", QDir("cache/HorizonPacks").absolutePath());
         m_metacache->addBase("ATLauncherPacks", QDir("cache/ATLauncherPacks").absolutePath());
         m_metacache->addBase("FTBPacks", QDir("cache/FTBPacks").absolutePath());
         m_metacache->addBase("TechnicPacks", QDir("cache/TechnicPacks").absolutePath());

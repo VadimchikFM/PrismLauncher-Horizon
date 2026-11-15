@@ -76,6 +76,12 @@ ShaderPackPage::ShaderPackPage(MinecraftInstance* instance, ShaderPackFolderMode
     ui->actionsToolbar->insertActionAfter(ui->actionUpdateItem, ui->actionChangeVersion);
 }
 
+void ShaderPackPage::updateFrame(const QModelIndex& current, [[maybe_unused]] const QModelIndex& previous)
+{
+    auto sourceCurrent = m_filterModel->mapToSource(current);
+    ui->frame->updateWithShaderPack(m_model->at(sourceCurrent.row()));
+}
+
 void ShaderPackPage::downloadShaderPack()
 {
     if (m_instance->typeName() != "Minecraft") {

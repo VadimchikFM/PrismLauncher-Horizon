@@ -414,6 +414,10 @@ void ResourceFolderModel::onParseSucceeded(int ticket, QString resource_id)
         return;
 
     int row = m_resources_index[resource_id];
+    // Only resources of other kinds than mods were left "resolving" after their parse; they are done too
+    if (const auto& resource = m_resources.at(row); resource->resolutionTicket() == ticket) {
+        resource->finishResolving();
+    }
     emit dataChanged(index(row), index(row, columnCount(QModelIndex()) - 1));
 }
 

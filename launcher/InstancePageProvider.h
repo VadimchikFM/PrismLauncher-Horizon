@@ -32,7 +32,8 @@ class InstancePageProvider : protected QObject, public BasePageProvider {
         values.append(new VersionPage(onesix));
         values.append(ManagedPackPage::createPage(onesix));
         auto modsPage = new ModFolderPage(onesix, onesix->loaderModList());
-        modsPage->setFilter("%1 (*.zip *.jar *.litemod *.nilmod)");
+        // An instance launched with Horizon lists Horizon's mods: content (.hmod) and native (.hnmod)
+        modsPage->setFilter(onesix->usesHorizon() ? "%1 (*.hmod *.hnmod)" : "%1 (*.zip *.jar *.litemod *.nilmod)");
         values.append(modsPage);
         values.append(new CoreModFolderPage(onesix, onesix->coreModList()));
         values.append(new NilModFolderPage(onesix, onesix->nilModList()));

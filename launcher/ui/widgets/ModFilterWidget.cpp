@@ -412,3 +412,9 @@ void ModFilterWidget::onShowMoreClicked()
 }
 
 #include "ModFilterWidget.moc"
+
+void ModFilterWidget::hideLoaderAndSideFilters()
+{
+    ui->loaderGroup->hide();
+    ui->environmentGroup->hide();
+}

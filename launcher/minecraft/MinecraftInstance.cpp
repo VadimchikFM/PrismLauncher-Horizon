@@ -62,6 +62,11 @@
 #include "minecraft/launch/EnsureAvailableMemory.h"
 #include "minecraft/launch/EnsureOfflineLibraries.h"
 #include "minecraft/launch/ExtractNatives.h"
+#include "minecraft/HorizonComponent.h"
+#include "minecraft/launch/HorizonInstall.h"
+#include "minecraft/mod/HorizonModFolderModel.h"
+#include "minecraft/launch/HorizonLaunch.h"
+#include "minecraft/launch/HorizonPrepare.h"
 #include "minecraft/launch/LauncherPartLaunch.h"
 #include "minecraft/launch/ModMinecraftJar.h"
 #include "minecraft/launch/PrintInstanceInfo.h"
@@ -252,6 +257,16 @@ void MinecraftInstance::loadSpecificSettings()
     m_settings->registerSetting("UseAccountForInstance", false);
     m_settings->registerSetting("InstanceAccountId", "");
 
+    // Launch with Horizon, the Rust rewrite of the game, instead of Java. This does not have a global override
+    m_settings->registerSetting("UseHorizon", false);
+    // The Horizon it plays: a release's tag, or "latest" for the newest Nightly, which follows updates
+    m_settings->registerSetting("HorizonVersion", "latest");
+    // The game built with this instance's native Horizon mods: the version it plays, what it was built with (the
+    // build profile and the mods), and the profile the next build uses
+    m_settings->registerSetting("HorizonNativeVersion", "");
+    m_settings->registerSetting("HorizonNativeSignature", "");
+    m_settings->registerSetting("HorizonNativeProfile", "performance");
+
     m_settings->registerSetting("ExportName", "");
     m_settings->registerSetting("ExportVersion", "1.0.0");
     m_settings->registerSetting("ExportSummary", "");
@@ -383,6 +398,32 @@ bool MinecraftInstance::supportsDemo() const
     // Demo mode was introduced in 1.3.1: https://minecraft.wiki/w/Demo_mode#History
     // FIXME: Due to Version constraints atm, this can't handle well non-release versions
     return instance_ver >= Version("1.3.1");
+}
+
+bool MinecraftInstance::usesHorizon()
+{
+    auto* profile = getPackProfile();
+    if (profile == nullptr) {
+        return false;
+    }
+    // Its components are what says it: read them, if nothing has yet
+    if (!profile->getComponent("net.minecraft")) {
+        profile->reload(Net::Mode::Offline);
+    }
+    // An instance from before Horizon was a component kept it in its settings
+    if (settings()->get("UseHorizon").toBool()) {
+        settings()->set("UseHorizon", false);
+        if (!profile->getComponent(HorizonComponent::Uid)) {
+            HorizonComponent::install(profile, settings()->get("HorizonVersion").toString());
+        }
+    }
+    return !HorizonComponent::version(profile).isEmpty();
+}
+
+QString MinecraftInstance::horizonModsRoot() const
+{
+    // The folder Horizon loads content mods from (and leaves alone what is no .hmod, such as native mods)
+    return FS::PathCombine(gameRoot(), "horizon-mods");
 }
 
 QString MinecraftInstance::jarModsDir() const
@@ -1090,6 +1131,9 @@ QString MinecraftInstance::getStatusbarDescription()
 
     QString description;
     description.append(tr("Minecraft %1").arg(mcVersion));
+    if (usesHorizon()) {
+        description.append(tr(" (Horizon)"));
+    }
     if (m_settings->get("ShowGameTime").toBool()) {
         if (lastTimePlayed() > 0 && lastLaunch() > 0) {
             QDateTime lastLaunchTime = QDateTime::fromMSecsSinceEpoch(lastLaunch());
@@ -1169,9 +1213,21 @@ LaunchTask* MinecraftInstance::createLaunchTask(AuthSessionPtr session, Minecraf
         process->appendStep(makeShared<TaskStepWrapper>(pptr, makeShared<MinecraftLoadAndCheck>(this, mode)));
     }
 
+    // Horizon is the game rewritten in Rust: it replaces the Java launch below, and plays in the same game folder
+    const bool horizon = usesHorizon();
+    auto horizonContext = std::make_shared<HorizonContext>();
+    if (horizon) {
+        // find the Horizon build, or download the newest one. First of all: a launch Horizon can't serve (the demo)
+        // ends here, before anything is downloaded for it
+        process->appendStep(makeShared<HorizonInstall>(pptr, horizonContext, session->launchMode));
+    }
+
     // check java
     {
         process->appendStep(makeShared<AutoInstallJava>(pptr));
+        // Horizon runs no Java itself, but this check is still needed: it records the Java's architecture, which
+        // decides which native libraries the update steps below download, and Horizon's resources are prepared
+        // from those libraries with that Java.
         process->appendStep(makeShared<CheckJava>(pptr));
         // verify that minimum Java requirements are met
         process->appendStep(makeShared<VerifyJavaInstall>(pptr));
@@ -1194,43 +1250,56 @@ LaunchTask* MinecraftInstance::createLaunchTask(AuthSessionPtr session, Minecraf
         process->appendStep(makeShared<EnsureOfflineLibraries>(pptr, this));
     }
 
-    // if there are any jar mods
-    {
-        process->appendStep(makeShared<ModMinecraftJar>(pptr));
-    }
+    if (horizon) {
+        // make sure the resources Horizon reads are there and current. They are prepared from the libraries and
+        // assets the steps above fetched
+        process->appendStep(makeShared<HorizonPrepare>(pptr, horizonContext));
 
-    // Scan mods folders for mods
-    {
-        process->appendStep(makeShared<ScanModFolders>(pptr));
-    }
-
-    // make sure we have enough RAM, warn the user if we don't
-    {
-        process->appendStep(makeShared<EnsureAvailableMemory>(pptr, this));
-    }
-
-    // print some instance info here...
-    {
-        process->appendStep(makeShared<PrintInstanceInfo>(pptr, session, targetToJoin));
-    }
-
-    // extract native jars if needed
-    {
-        process->appendStep(makeShared<ExtractNatives>(pptr));
-    }
-
-    // reconstruct assets if needed
-    {
-        process->appendStep(makeShared<ReconstructAssets>(pptr));
-    }
-
-    {
         // actually launch the game
-        auto step = makeShared<LauncherPartLaunch>(pptr);
+        auto step = makeShared<HorizonLaunch>(pptr, horizonContext);
         step->setWorkingDirectory(gameRoot());
         step->setAuthSession(session);
         step->setTargetToJoin(targetToJoin);
         process->appendStep(step);
+    } else {
+        // if there are any jar mods
+        {
+            process->appendStep(makeShared<ModMinecraftJar>(pptr));
+        }
+
+        // Scan mods folders for mods
+        {
+            process->appendStep(makeShared<ScanModFolders>(pptr));
+        }
+
+        // make sure we have enough RAM, warn the user if we don't
+        {
+            process->appendStep(makeShared<EnsureAvailableMemory>(pptr, this));
+        }
+
+        // print some instance info here...
+        {
+            process->appendStep(makeShared<PrintInstanceInfo>(pptr, session, targetToJoin));
+        }
+
+        // extract native jars if needed
+        {
+            process->appendStep(makeShared<ExtractNatives>(pptr));
+        }
+
+        // reconstruct assets if needed
+        {
+            process->appendStep(makeShared<ReconstructAssets>(pptr));
+        }
+
+        {
+            // actually launch the game
+            auto step = makeShared<LauncherPartLaunch>(pptr);
+            step->setWorkingDirectory(gameRoot());
+            step->setAuthSession(session);
+            step->setTargetToJoin(targetToJoin);
+            process->appendStep(step);
+        }
     }
 
     // run post-exit command if that's needed
@@ -1257,6 +1326,13 @@ JavaVersion MinecraftInstance::getJavaVersion()
 
 ModFolderModel* MinecraftInstance::loaderModList()
 {
+    if (usesHorizon()) {
+        if (!m_horizon_mod_list) {
+            bool is_indexed = !APPLICATION->settings()->get("ModMetadataDisabled").toBool();
+            m_horizon_mod_list.reset(new HorizonModFolderModel(horizonModsRoot(), this, is_indexed, true));
+        }
+        return m_horizon_mod_list.get();
+    }
     if (!m_loader_mod_list) {
         bool is_indexed = !APPLICATION->settings()->get("ModMetadataDisabled").toBool();
         m_loader_mod_list.reset(new ModFolderModel(modsRoot(), this, is_indexed, true));

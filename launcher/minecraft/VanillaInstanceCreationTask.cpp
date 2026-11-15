@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "FileSystem.h"
+#include "minecraft/HorizonComponent.h"
 #include "minecraft/MinecraftInstance.h"
 #include "minecraft/PackProfile.h"
 #include "settings/INISettingsObject.h"
@@ -28,6 +29,9 @@ std::unique_ptr<MinecraftInstance> VanillaCreationTask::createInstance()
     components->setComponentVersion("net.minecraft", m_version->descriptor(), true);
     if (m_using_loader)
         components->setComponentVersion(m_loader, m_loader_version->descriptor());
+
+    if (m_use_horizon)
+        HorizonComponent::install(components, m_horizon_version);
 
     inst->setName(name());
     inst->setIconKey(m_instIcon);

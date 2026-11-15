@@ -713,7 +713,7 @@ void PackProfile::installAgents(QStringList selectedFiles)
     installAgents_internal(selectedFiles);
 }
 
-bool PackProfile::installEmpty(const QString& uid, const QString& name)
+bool PackProfile::installEmpty(const QString& uid, const QString& name, const QString& version)
 {
     QString patchDir = FS::PathCombine(d->m_instance->instanceRoot(), "patches");
     if (!FS::ensureFolderPathExists(patchDir)) {
@@ -722,7 +722,7 @@ bool PackProfile::installEmpty(const QString& uid, const QString& name)
     auto f = std::make_shared<VersionFile>();
     f->name = name;
     f->uid = uid;
-    f->version = "1";
+    f->version = version;
     QString patchFileName = FS::PathCombine(patchDir, uid + ".json");
     QFile file(patchFileName);
     if (!file.open(QFile::WriteOnly)) {
