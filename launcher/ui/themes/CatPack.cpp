@@ -50,15 +50,17 @@ QString BasicCatPack::path() const
     const auto xmas = QDate(now.year(), 12, 25);
     const auto halloween = QDate(now.year(), 10, 31);
 
-    QString cat = QString(":/backgrounds/%1").arg(m_id);
+    const QString cat = QString(":/backgrounds/%1").arg(m_id);
+    QString variant;
     if (std::abs(now.daysTo(xmas)) <= 4) {
-        cat += "-xmas";
+        variant = cat + "-xmas";
     } else if (std::abs(now.daysTo(halloween)) <= 4) {
-        cat += "-spooky";
+        variant = cat + "-spooky";
     } else if (std::abs(now.daysTo(birthday)) <= 12) {
-        cat += "-bday";
+        variant = cat + "-bday";
     }
-    return cat;
+    // A pack drawn without a holiday's picture shows its usual one then
+    return !variant.isEmpty() && QFileInfo::exists(variant) ? variant : cat;
 }
 
 JsonCatPack::PartialDate partialDate(QJsonObject date)
