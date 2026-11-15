@@ -55,6 +55,10 @@ class HorizonBuildDialog : public QDialog {
     /// What the instance's build is: none, one to redo (the mods or the profile changed), or up to date.
     static QString buildStatus(MinecraftInstance* instance);
 
+    /// The mods a failed build names as made for other Horizon versions, with the version the build uses
+    /// ("freelook → a491181, mod_menu → fdc87ae; the build uses 9f42064"), or nothing when it failed otherwise.
+    static QString mismatchedMods(const QString& error);
+
    public slots:
     /// Closing while it builds asks first, and stops the build.
     void reject() override;
@@ -71,6 +75,8 @@ class HorizonBuildDialog : public QDialog {
     void prepareBase(const QString& base);
     void runPrepare();
     void build(const QString& base);
+    /// Mods made for other Horizon versions often still build together: the player may try.
+    void askToBuildAnyway(const QString& list, const QString& error);
     void commandFinished(bool succeeded, const QByteArray& standardOutput, const QString& error);
     void succeed(const QString& version);
     void fail(const QString& reason);
@@ -86,6 +92,8 @@ class HorizonBuildDialog : public QDialog {
     QString m_base;
     /// Whether this run has prepared `m_base` already: it is done once.
     bool m_prepared = false;
+    /// The player agreed to build mods made for other Horizon versions together (--allow-version-mismatch)
+    bool m_allowMismatch = false;
     HorizonBackend m_backend;
     /// The download of the game's files before a prepare, while it runs and after
     Task::Ptr m_gameFiles;

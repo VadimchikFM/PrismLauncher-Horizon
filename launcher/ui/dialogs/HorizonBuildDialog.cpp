@@ -20,9 +20,9 @@
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QDir>
-#include <QHBoxLayout>
 #include <QFileInfo>
 #include <QFontDatabase>
+#include <QHBoxLayout>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -191,7 +191,44 @@ void HorizonBuildDialog::build(const QString& base)
                           .arg(m_profile));
     append(tr("Building on %1, profile %2").arg(base, m_profile));
     // --trust-native-code: the player said so on the page that opened this dialog, for exactly these mods
-    m_backend.run({ "native-build", "--version", base, "--profile", m_profile, "--trust-native-code" });
+    QStringList arguments{ "native-build", "--version", base, "--profile", m_profile, "--trust-native-code" };
+    if (m_allowMismatch) {
+        arguments.append("--allow-version-mismatch");
+    }
+    m_backend.run(arguments);
+}
+
+QString HorizonBuildDialog::mismatchedMods(const QString& error)
+{
+    // "Made for other Horizon versions: freelook → a491181, mod_menu → fdc87ae; the build uses 9f42064."
+    // (native_mods::MISMATCH in Horizon's launcher, which builds them only when the player agreed to try)
+    static const QRegularExpression s_mismatch("Made for other Horizon versions: (.+?; the build uses [0-9a-f]+)");
+    const auto match = s_mismatch.match(error);
+    return match.hasMatch() ? match.captured(1) : QString();
+}
+
+void HorizonBuildDialog::askToBuildAnyway(const QString& list, const QString& error)
+{
+    // As Horizon's own launcher does: say which mods, and let the player try
+    QStringList lines = list.split("; ");
+    lines.first().replace(", ", "\n");
+    QMessageBox ask(
+        QMessageBox::Warning, tr("Mods made for other Horizon versions"),
+        tr("These mods were made for different Horizon versions:\n\n%1\n\nThey often still work together. The build then uses the "
+           "newest of those versions and compiles the game again, which takes as long as a first build. If it fails, "
+           "install versions of the mods made for the same Horizon Nightly.")
+            .arg(lines.join("\n")),
+        QMessageBox::Cancel, this);
+    auto* anyway = ask.addButton(tr("Build anyway"), QMessageBox::AcceptRole);
+    ask.setDefaultButton(QMessageBox::Cancel);
+    ask.exec();
+    if (ask.clickedButton() != anyway) {
+        fail(error);
+        return;
+    }
+    m_allowMismatch = true;
+    append(tr("Building anyway, on the newest Horizon the mods were made for"));
+    build(m_base);
 }
 
 void HorizonBuildDialog::commandFinished(bool succeeded, const QByteArray& standardOutput, const QString& error)
@@ -250,6 +287,10 @@ void HorizonBuildDialog::commandFinished(bool succeeded, const QByteArray& stand
             if (!succeeded && !m_prepared && error.contains("not prepared") && !m_base.startsWith("native-")) {
                 // The launcher's own word on it: prepare, once, and build again
                 prepareBase(m_base);
+                return;
+            }
+            if (const auto list = mismatchedMods(error); !succeeded && !m_allowMismatch && !list.isEmpty()) {
+                askToBuildAnyway(list, error);
                 return;
             }
             if (!succeeded) {
@@ -414,9 +455,9 @@ void HorizonBuildDialog::reject()
         QDialog::reject();
         return;
     }
-    const auto answer = QMessageBox::question(this, tr("Stop the build?"),
-                                              tr("The game is still being built. Stop it? What was compiled so far is kept for the next build."),
-                                              QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    const auto answer = QMessageBox::question(
+        this, tr("Stop the build?"), tr("The game is still being built. Stop it? What was compiled so far is kept for the next build."),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
     if (answer == QMessageBox::Yes && m_backend.isBusy()) {
         m_stopping = true;
         m_status->setText(tr("Stopping..."));

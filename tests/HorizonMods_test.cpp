@@ -30,6 +30,7 @@
 #include <minecraft/mod/tasks/LocalShaderPackParseTask.h>
 #include <settings/INISettingsObject.h>
 #include <translations/BundledTranslator.h>
+#include <ui/dialogs/HorizonBuildDialog.h>
 
 #include <modplatform/horizon/HorizonAPI.h>
 #include <modplatform/packwiz/Packwiz.h>
@@ -362,6 +363,20 @@ class HorizonModsTest : public QObject {
         context.updateFromInstanceSettings(&settings);
         QCOMPARE(context.javaArchitecture, QString("32"));
         QCOMPARE(context.mappedJavaRealArchitecture(), QString("x86"));
+    }
+
+    void test_modsMadeForOtherHorizonVersionsAreNamed()
+    {
+        // As horizon-launcher native-build ended for a player whose mods pin four Horizon commits
+        const auto error = QString::fromUtf8(
+            "error: Made for other Horizon versions: freelook → a491181, mod_menu → fdc87ae, mousetweaks → fdc87ae, "
+            "shulker_peek → 5e391eb, voicechat → c9d474d, waypoints → fdc87ae; the build uses 9f42064. They often "
+            "still build: pass --allow-version-mismatch to try.");
+        QCOMPARE(HorizonBuildDialog::mismatchedMods(error),
+                 QString::fromUtf8("freelook → a491181, mod_menu → fdc87ae, mousetweaks → fdc87ae, shulker_peek → 5e391eb, "
+                                   "voicechat → c9d474d, waypoints → fdc87ae; the build uses 9f42064"));
+        // Any other failure is not this one
+        QVERIFY(HorizonBuildDialog::mismatchedMods("error: horizon-client-lib failed to compile").isEmpty());
     }
 };
 
