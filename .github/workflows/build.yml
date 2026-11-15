@@ -91,7 +91,8 @@ jobs:
         shell: ${{ matrix.msystem != '' && 'msys2 {0}' || 'bash' }}
 
     env:
-      ARTIFACT_NAME: ""
+      # The updater picks its release asset by this name (Launcher_UPDATER_GITHUB_REPO is this fork's)
+      ARTIFACT_NAME: ${{ matrix.artifact-name }}-Qt6
       BUILD_PLATFORM: horizon
       BUILD_TYPE: ${{ inputs.build-type || 'Debug' }}
       CMAKE_PRESET: ${{ matrix.cmake-preset }}

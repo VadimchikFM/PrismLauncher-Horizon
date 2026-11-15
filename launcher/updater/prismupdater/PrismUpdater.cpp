@@ -321,7 +321,8 @@ PrismUpdaterApp::PrismUpdaterApp(int& argc, char** argv) : QApplication(argc, ar
     m_printOnly = parser.isSet("list");
     auto user_version = parser.value("install-version");
     if (!user_version.isEmpty()) {
-        m_userSelectedVersion = Version(user_version);
+        // A release's tag (the launcher passes the one it offered), with this fork's v, as release versions are read
+        m_userSelectedVersion = Version(user_version.startsWith('v') ? user_version.mid(1) : user_version);
     }
     m_selectUI = parser.isSet("select-ui");
     m_allowDowngrade = parser.isSet("allow-downgrade");
@@ -1187,7 +1188,8 @@ int PrismUpdaterApp::parseReleasePage(const QByteArray* response)
             release.draft = Json::requireBoolean(release_obj, "draft");
             release.prerelease = Json::requireBoolean(release_obj, "prerelease");
             release.body = release_obj["body"].toString();
-            release.version = Version(release.tag_name);
+            // This fork tags its releases vMAJOR.MINOR.PATCH: the version is what follows the v
+            release.version = Version(release.tag_name.startsWith('v') ? release.tag_name.mid(1) : release.tag_name);
 
             auto release_assets_obj = Json::requireArray(release_obj, "assets");
             for (auto asset_json : release_assets_obj) {

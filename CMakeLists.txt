@@ -179,9 +179,27 @@ set(Launcher_LOGIN_CALLBACK_URL "https://prismlauncher.org/successful-login" CAC
 set(Launcher_LEGACY_FMLLIBS_BASE_URL "https://files.prismlauncher.org/fmllibs/" CACHE STRING "URL for legacy (<=1.5.2) FML Libraries.")
 
 ######## Set version numbers ########
-set(Launcher_VERSION_MAJOR 11)
-set(Launcher_VERSION_MINOR 1)
-set(Launcher_VERSION_PATCH 1)
+# This Horizon build's version is its newest release tag (vMAJOR.MINOR.PATCH), the one tagged for a release build: the
+# updater compares it with the tags of this fork's GitHub releases. It is built on Prism Launcher 11.1.1.
+find_package(Git QUIET)
+if(GIT_FOUND)
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" describe --tags --abbrev=0 --match "v[0-9]*" HEAD
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        OUTPUT_VARIABLE Launcher_RELEASE_TAG
+        ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
+if(Launcher_RELEASE_TAG MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
+    set(Launcher_VERSION_MAJOR ${CMAKE_MATCH_1})
+    set(Launcher_VERSION_MINOR ${CMAKE_MATCH_2})
+    set(Launcher_VERSION_PATCH ${CMAKE_MATCH_3})
+else()
+    # No release tag in reach (a copy without its history): older than any release, so the updater offers the newest
+    set(Launcher_VERSION_MAJOR 0)
+    set(Launcher_VERSION_MINOR 0)
+    set(Launcher_VERSION_PATCH 0)
+endif()
+message(STATUS "Version: ${Launcher_VERSION_MAJOR}.${Launcher_VERSION_MINOR}.${Launcher_VERSION_PATCH} (release tag: ${Launcher_RELEASE_TAG})")
 
 set(Launcher_VERSION_NAME "${Launcher_VERSION_MAJOR}.${Launcher_VERSION_MINOR}.${Launcher_VERSION_PATCH}")
 set(Launcher_VERSION_NAME4 "${Launcher_VERSION_MAJOR}.${Launcher_VERSION_MINOR}.${Launcher_VERSION_PATCH}.0")
@@ -191,7 +209,8 @@ set(Launcher_VERSION_NAME4_COMMA "${Launcher_VERSION_MAJOR},${Launcher_VERSION_M
 set(Launcher_BUILD_PLATFORM "unknown" CACHE STRING "A short string identifying the platform that this build was built for. Only used to display in the about dialog.")
 
 # Github repo URL with releases for updater
-set(Launcher_UPDATER_GITHUB_REPO "https://github.com/PrismLauncher/PrismLauncher" CACHE STRING "Base github URL for the updater.")
+# (this Horizon fork's own releases: Prism Launcher's would replace it with Prism itself)
+set(Launcher_UPDATER_GITHUB_REPO "https://github.com/VadimchikFM/PrismLauncher-Horizon" CACHE STRING "Base github URL for the updater.")
 
 # Name to help updater identify valid artifacts
 set(Launcher_BUILD_ARTIFACT "" CACHE STRING "Artifact name to help the updater identify valid artifacts.")
