@@ -1,4 +1,4 @@
-name: Build
+﻿name: Build
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -91,8 +91,8 @@ jobs:
         shell: ${{ matrix.msystem != '' && 'msys2 {0}' || 'bash' }}
 
     env:
-      ARTIFACT_NAME: ${{ matrix.artifact-name }}-Qt6
-      BUILD_PLATFORM: official
+      ARTIFACT_NAME: ""
+      BUILD_PLATFORM: horizon
       BUILD_TYPE: ${{ inputs.build-type || 'Debug' }}
       CMAKE_PRESET: ${{ matrix.cmake-preset }}
 
@@ -186,3 +186,4 @@ jobs:
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+

@@ -1,4 +1,4 @@
-name: Build Application and Make Release
+﻿name: Build Application and Make Release
 
 on:
   push:
@@ -98,8 +98,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ github.ref }}
-          name: Prism Launcher ${{ env.VERSION }}
-          draft: true
+          name: Prism Launcher Horizon ${{ env.VERSION }}
+          draft: false
           prerelease: false
           fail_on_unmatched_files: true
           files: |
@@ -124,3 +124,4 @@ jobs:
             PrismLauncher-macOS-${{ env.VERSION }}.zip
             PrismLauncher-macOS-${{ env.VERSION }}.dmg
             PrismLauncher-${{ env.VERSION }}.tar.gz
+
