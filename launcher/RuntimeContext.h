@@ -20,6 +20,7 @@
 
 #include <QSet>
 #include <QString>
+#include <QSysInfo>
 #include "SysInfo.h"
 #include "settings/SettingsObject.h"
 
@@ -45,6 +46,15 @@ struct RuntimeContext {
     {
         javaArchitecture = instanceSettings->get("JavaArchitecture").toString();
         javaRealArchitecture = instanceSettings->get("JavaRealArchitecture").toString();
+        // Until a launch has checked a Java, its architecture is unknown, and no native library would match it. The game's
+        // files are downloaded before that, when an instance is created, and Horizon's build reads them without a launch:
+        // this computer's own architecture stands in, until a launch says what the Java's is.
+        if (javaRealArchitecture.isEmpty()) {
+            javaRealArchitecture = QSysInfo::currentCpuArchitecture();
+        }
+        if (javaArchitecture.isEmpty()) {
+            javaArchitecture = QString::number(QSysInfo::WordSize);
+        }
     }
 
     QString getClassifier() const { return system + "-" + mappedJavaRealArchitecture(); }

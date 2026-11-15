@@ -58,6 +58,7 @@
     "Could not create the folder %1": "Не удалось создать папку %1",
     "Could not download Horizon's tools: %1": "Не удалось загрузить инструменты Horizon: %1",
     "Could not download Horizon: %1": "Не удалось загрузить Horizon: %1",
+    "Could not download Minecraft's files: %1": "Не удалось скачать файлы Minecraft: %1",
     "Could not get the native mods ready for the build: %1": "Не удалось подготовить нативные моды к сборке: %1",
     "Could not get the newest Horizon build (%1). Playing the installed one.\n": "Не удалось получить новейшую сборку Horizon (%1). Запускается установленная.\n",
     "Could not get the newest Horizon tools (%1). Using the installed ones.": "Не удалось получить новейшие инструменты Horizon (%1). Используются установленные.",
@@ -79,6 +80,7 @@
     "Downloading Horizon's tools (%1)...": "Загрузка инструментов Horizon (%1)...",
     "Downloading Horizon's tools (%1): %2%": "Загрузка инструментов Horizon (%1): %2%",
     "Downloading Horizon...": "Загрузка Horizon...",
+    "Downloading the Minecraft files Horizon is prepared from...": "Скачивание файлов Minecraft, из которых готовится Horizon...",
     "Downloads: %1": "Загрузок: %1",
     "Enable": "Включить",
     "Game crashed.": "Аварийное завершение игры.",
@@ -121,6 +123,7 @@
     "License: %1": "Лицензия: %1",
     "Looking for Horizon %1...": "Поиск Horizon %1...",
     "Looking for Horizon's tools...": "Поиск инструментов Horizon...",
+    "Minecraft files for Horizon": "Файлы Minecraft для Horizon",
     "Minecraft rewritten in Rust: the instance is launched with Horizon instead of Java.": "Minecraft, переписанный на Rust: экземпляр запускается через Horizon вместо Java.",
     "Modpack %1 for Minecraft %2: %n mod(s)": [
       "Сборка модов %1 для Minecraft %2: %n мод",

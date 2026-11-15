@@ -37,7 +37,10 @@
 #include "Application.h"
 #include "minecraft/HorizonMods.h"
 #include "minecraft/MinecraftInstance.h"
+#include "minecraft/MinecraftLoadAndCheck.h"
+#include "minecraft/auth/AccountList.h"
 #include "settings/SettingsObject.h"
+#include "tasks/SequentialTask.h"
 
 HorizonBuildDialog::HorizonBuildDialog(MinecraftInstance* instance, QString profile, QWidget* parent)
     : QDialog(parent), m_instance(instance), m_profile(std::move(profile)), m_backend(instance->gameRoot())
@@ -133,14 +136,50 @@ void HorizonBuildDialog::prepareBase(const QString& base)
 {
     // A build starts from a version whose game files are prepared: its copy of them is what the built game plays
     // with. Horizon's launcher prepares them from this launcher's own Minecraft files, which it knows how to read.
-    m_step = Step::PrepareBase;
     m_base = base;
     m_prepared = true;
+
+    // It downloads none of them, and they need not all be there: an instance that was only created has no native
+    // libraries yet. What is missing is downloaded first, as a launch downloads it. Without an account this launcher
+    // downloads no game (as Download All on the Version page): what is there may still be enough.
+    if (!APPLICATION->accounts()->anyAccountIsValid()) {
+        runPrepare();
+        return;
+    }
+    m_status->setText(tr("Downloading the Minecraft files Horizon is prepared from..."));
+    append(m_status->text());
+    auto task = makeShared<SequentialTask>(tr("Minecraft files for Horizon"));
+    task->addTask(makeShared<MinecraftLoadAndCheck>(m_instance, Net::Mode::Online));
+    for (const auto& step : m_instance->createUpdateTask()) {
+        task->addTask(step);
+    }
+    auto* running = task.get();
+    connect(running, &Task::status, this, [this](const QString& text) {
+        if (!text.isEmpty()) {
+            m_status->setText(text);
+        }
+    });
+    connect(running, &Task::finished, this, [this, running] {
+        if (m_stopping) {
+            fail(tr("The build was stopped."));
+        } else if (!running->wasSuccessful()) {
+            fail(tr("Could not download Minecraft's files: %1").arg(running->failReason()));
+        } else {
+            runPrepare();
+        }
+    });
+    m_gameFiles = task;
+    task->start();
+}
+
+void HorizonBuildDialog::runPrepare()
+{
+    m_step = Step::PrepareBase;
     m_status->setText(tr("Preparing %1 from this launcher's Minecraft files. This is done once per Horizon version and takes several "
                          "minutes.")
-                          .arg(base));
+                          .arg(m_base));
     append(m_status->text());
-    m_backend.run({ "prepare", "--version", base, "--minecraft", QDir::toNativeSeparators(APPLICATION->dataRoot()) });
+    m_backend.run({ "prepare", "--version", m_base, "--minecraft", QDir::toNativeSeparators(APPLICATION->dataRoot()) });
 }
 
 void HorizonBuildDialog::build(const QString& base)
@@ -364,6 +403,13 @@ bool HorizonBuildDialog::confirmAndBuild(MinecraftInstance* instance, QWidget* p
 
 void HorizonBuildDialog::reject()
 {
+    if (m_gameFiles && m_gameFiles->isRunning()) {
+        // A download has nothing to keep: it stops without asking, and says so once it has
+        m_stopping = true;
+        m_status->setText(tr("Stopping..."));
+        m_gameFiles->abort();
+        return;
+    }
     if (!m_backend.isBusy()) {
         QDialog::reject();
         return;

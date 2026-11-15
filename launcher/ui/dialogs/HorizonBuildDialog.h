@@ -20,6 +20,7 @@
 #include <QDialog>
 
 #include "minecraft/HorizonBackend.h"
+#include "tasks/Task.h"
 
 class MinecraftInstance;
 class QLabel;
@@ -66,7 +67,9 @@ class HorizonBuildDialog : public QDialog {
     void installBase();
     /// Prepares `base` when its game files are not prepared yet, then builds on it.
     void prepareThenBuild(const QString& base);
+    /// Downloads the Minecraft files the instance plays with that are missing, then prepares `m_base` from them.
     void prepareBase(const QString& base);
+    void runPrepare();
     void build(const QString& base);
     void commandFinished(bool succeeded, const QByteArray& standardOutput, const QString& error);
     void succeed(const QString& version);
@@ -84,6 +87,8 @@ class HorizonBuildDialog : public QDialog {
     /// Whether this run has prepared `m_base` already: it is done once.
     bool m_prepared = false;
     HorizonBackend m_backend;
+    /// The download of the game's files before a prepare, while it runs and after
+    Task::Ptr m_gameFiles;
     Step m_step = Step::Idle;
     bool m_stopping = false;
 

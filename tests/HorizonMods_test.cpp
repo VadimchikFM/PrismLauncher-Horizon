@@ -20,12 +20,15 @@
 #include <QTest>
 
 #include <FileSystem.h>
+#include <RuntimeContext.h>
 #include <archive/ArchiveWriter.h>
 #include <minecraft/HorizonMods.h>
+#include <minecraft/OneSixVersionFormat.h>
 #include <minecraft/mod/Mod.h>
 #include <minecraft/mod/ShaderPack.h>
 #include <minecraft/mod/tasks/LocalModParseTask.h>
 #include <minecraft/mod/tasks/LocalShaderPackParseTask.h>
+#include <settings/INISettingsObject.h>
 #include <translations/BundledTranslator.h>
 
 #include <modplatform/horizon/HorizonAPI.h>
@@ -321,6 +324,44 @@ class HorizonModsTest : public QObject {
         QCOMPARE(english.translate("HorizonRegistryBrowser", "%n project(s)", nullptr, 1), QString("%n project"));
         QCOMPARE(english.translate("HorizonRegistryBrowser", "%n project(s)", nullptr, 2), QString("%n projects"));
         QVERIFY(english.translate("HorizonModFolderModel", "Build Horizon", nullptr, -1).isNull());
+    }
+
+    void test_nativeLibrariesAreFetchedBeforeAJavaIsChecked()
+    {
+        // An instance no launch has checked a Java for: its game files are downloaded when it is created
+        QTemporaryDir dir;
+        INISettingsObject settings(dir.filePath("instance.cfg"));
+        settings.registerSetting("JavaArchitecture", "");
+        settings.registerSetting("JavaRealArchitecture", "");
+        RuntimeContext context;
+        context.updateFromInstanceSettings(&settings);
+        QVERIFY(!context.javaRealArchitecture.isEmpty());
+        QVERIFY(!context.javaArchitecture.isEmpty());
+
+        // A native library of this system, as the metadata of 26.3 has jtracy's (which Horizon's build reads)
+        const QJsonObject artifact{
+            { "sha1", "3e26b44141ba853b45f734f643a6a8ac8b8fc259" },
+            { "size", 49885 },
+            { "url",
+              QString("https://libraries.minecraft.net/com/mojang/jtracy/1.14.38/jtracy-1.14.38-natives-%1.jar").arg(context.system) }
+        };
+        const QJsonObject rule{ { "action", "allow" }, { "os", QJsonObject{ { "name", context.system } } } };
+        const QJsonObject json{ { "name", QString("com.mojang:jtracy-natives-%1:1.14.38").arg(context.system) },
+                                { "downloads", QJsonObject{ { "artifact", artifact } } },
+                                { "rules", QJsonArray{ rule } } };
+        ProblemContainer problems;
+        const auto library = OneSixVersionFormat::libraryFromJson(problems, json, "26.3.json");
+        if (!context.isLegacyArch()) {
+            QSKIP("Mojang names the natives of other architectures than x86 and x86_64 by the architecture too");
+        }
+        QVERIFY(library->isActive(context));
+
+        // What a launch checked stays what counts
+        settings.set("JavaArchitecture", "32");
+        settings.set("JavaRealArchitecture", "i686");
+        context.updateFromInstanceSettings(&settings);
+        QCOMPARE(context.javaArchitecture, QString("32"));
+        QCOMPARE(context.mappedJavaRealArchitecture(), QString("x86"));
     }
 };
 
