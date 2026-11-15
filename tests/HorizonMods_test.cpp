@@ -28,10 +28,10 @@
 #include <minecraft/mod/tasks/LocalShaderPackParseTask.h>
 #include <translations/BundledTranslator.h>
 
-#include <QBuffer>
-#include <QImage>
 #include <modplatform/horizon/HorizonAPI.h>
 #include <modplatform/packwiz/Packwiz.h>
+#include <QBuffer>
+#include <QImage>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -220,7 +220,8 @@ class HorizonModsTest : public QObject {
                 {"version": "1.0.0", "published": "2026-10-20", "game": "26.3",
                  "api": "native-1/1111111aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/0d6b103c70633d8fd9443d8d0acd3aadaacedb06",
                  "file": {"name": "zoom-1.0.0.hnmod", "size": 5000, "sha256": "aa", "url": "http:\/\/example.com/zoom-1.0.0.hnmod"}}
-            ]})").object();
+            ]})")
+                                 .object();
 
         const auto pack = HorizonAPI::packFrom(project);
         QCOMPARE(pack->provider, ModPlatform::ResourceProvider::HORIZON);
@@ -285,9 +286,10 @@ class HorizonModsTest : public QObject {
         QVERIFY(icon.save(&buffer, "PNG"));
 
         const auto path = QDir(temp.path()).filePath("lumen-2.6.0.hshader");
-        makeZip(path, { { "horizon-shaders.toml", "schema = 1\nid = \"lumen\"\nname = \"Lumen\"\nversion = \"2.6.0\"\napi = \"0.1\"\n"
-                                                  "description = \"A cozy shader.\"\nauthors = [\"Lutziano888\"]\nlicense = \"MIT\"\n"
-                                                  "[sky]\nfile = \"sky.wgsl\"\n" },
+        makeZip(path, { { "horizon-shaders.toml",
+                          "schema = 1\nid = \"lumen\"\nname = \"Lumen\"\nversion = \"2.6.0\"\napi = \"0.1\"\n"
+                          "description = \"A cozy shader.\"\nauthors = [\"Lutziano888\"]\nlicense = \"MIT\"\n"
+                          "[sky]\nfile = \"sky.wgsl\"\n" },
                         { "sky.wgsl", "fn sky() {}" },
                         { "icon.png", png } });
         ShaderPack pack{ QFileInfo(path) };

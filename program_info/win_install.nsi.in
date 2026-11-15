@@ -376,7 +376,8 @@ Section "@Launcher_DisplayName@"
 
   File "@Launcher_APP_BINARY_NAME@.exe"
   File "@Launcher_APP_BINARY_NAME@_filelink.exe"
-  File "@Launcher_APP_BINARY_NAME@_updater.exe"
+  ; A build without an artifact name has no updater (Launcher_BUILD_UPDATER)
+  File /nonfatal "@Launcher_APP_BINARY_NAME@_updater.exe"
   File "qt.conf"
   File "qtlogging.ini"
   File *.dll
